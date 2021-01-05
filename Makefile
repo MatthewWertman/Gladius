@@ -1,13 +1,13 @@
 
-PYTHON := python
+PYTHON := python3
 MKDIR_P = mkdir -p
 
 .PHONY: all init
 
-unpack_iso     := $(PYTHON) tools/unpack_iso.py
-unpack_bec     := $(PYTHON) tools/unpack_bec.py
-create_iso     := $(PYTHON) tools/create_iso.py
-create_bec     := $(PYTHON) tools/create_bec.py
+unpack_iso     := $(PYTHON) tools/ngciso-tool.py -unpack
+unpack_bec     := $(PYTHON) tools/bec-tool.py -unpack
+create_iso     := $(PYTHON) tools/ngciso-tool.py -pack
+create_bec     := $(PYTHON) tools/bec-tool.py -pack
 
 all:
 
@@ -16,16 +16,16 @@ clean:
 	rm gladius.iso
 
 init:
-	$(unpack_iso) -d "./baseiso.iso" -of "./baseiso/" -filelist "BaseISO_FileList.txt" -export
-	$(unpack_bec) -d "./baseiso/gladius.bec" -of "./baseiso/gladius_bec/" -filelist "gladius_bec_FileList.txt"
+	$(unpack_iso) ./baseiso.iso ./baseiso/ BaseISO_FileList.txt
+	$(unpack_bec) ./baseiso/gladius.bec ./baseiso/gladius_bec/ gladius_bec_FileList.txt
 
 build/gladius.bec:
 	$(MKDIR_P) build/
-	$(create_bec) -dir "./baseiso/gladius_bec" -becmap "./baseiso/gladius_bec/gladius_bec_FileList.txt" -o $@
+	$(create_bec) ./baseiso/gladius_bec/ ./build/gladius.bec ./baseiso/gladius_bec/gladius_bec_FileList.txt
 
 gladius.iso: build/gladius.bec
 	$(MKDIR_P) build/
-	$(create_iso) -dir "./baseiso" -fst "./baseiso/fst.bin" -fstmap "./baseiso/BaseISO_FileList.txt" -o $@
+	$(create_iso) ./baseiso/ ./baseiso/fst.bin ./baseiso/BaseISO_FileList.txt gladius.iso
 	md5sum $@
 
 gladius: gladius.iso
