@@ -5,8 +5,6 @@ tools/ has python scripts for extracting and modifying data for the game Gladius
 - [Python](https://www.python.org/downloads/) | >=3.6
 - A ROM of Gladius
 
-NOTE: It seems only the GameCube version of the game is supported at the moment. I am not sure about PS2 and Xbox versions.
-
 ### Getting the Source Code
 Using git (optional):
 ```
@@ -63,7 +61,7 @@ To pack, call the tool with the "-pack" option:
 ```python3 tools/pak-tool.py -pack <inputDir> <fileList> <outputFile>```
 
 #### zlib-tool.py
-This seems to be a general tool to easily compress and decompress files.
+A general tool to easily compress and decompress files.
 
 To compress, use the "-c" option:
 ```python3 tools/zlib-tool.py -c <inputFile> <outputFile>```
