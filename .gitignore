@@ -137,10 +137,16 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 
+
 # Project specific
+
+# Generated
 *.elf
 *.o
 *.d
 *.bin
 *.pyc
+
+# baseiso
+baseiso/
 *.iso
