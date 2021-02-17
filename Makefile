@@ -2,14 +2,14 @@
 PYTHON := python3
 MKDIR_P = mkdir -p
 
-.PHONY: all init
+.PHONY: all init clean gladius
 
 unpack_iso     := $(PYTHON) tools/ngciso-tool.py -unpack
 unpack_bec     := $(PYTHON) tools/bec-tool.py -unpack
 create_iso     := $(PYTHON) tools/ngciso-tool.py -pack
 create_bec     := $(PYTHON) tools/bec-tool.py -pack
 
-all:
+all: clean gladius
 
 clean:
 	rm -f build/*
@@ -25,6 +25,7 @@ build/gladius.bec:
 
 gladius.iso: build/gladius.bec
 	$(MKDIR_P) build/
+	cp -v build/gladius.bec baseiso/
 	$(create_iso) ./baseiso/ ./baseiso/fst.bin ./baseiso/BaseISO_FileList.txt gladius.iso
 	md5sum $@
 
