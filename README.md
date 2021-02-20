@@ -25,10 +25,10 @@ The repo contains the following tools:
 This tool unpacks the content from a provided GameCube .iso copy of the game. A output file is created while unpacking to then repack into a new .iso.
 
 To unpack, call the tool with the "-unpack" option:
-```python3 tools/ngciso-tool.py -unpack <path-to-iso> <outputDir> <fileList>```
+`python3 tools/ngciso-tool.py -unpack <pathToIso> <outputDir> <fileList>`
 
 To pack, call the tool with the "-pack" option:
-```python3 tools/ngciso-tool.py -pack <inputDir> <fstFile> <fstMap> <outputFile>```
+`python3 tools/ngciso-tool.py -pack <inputDir> <fstFile> <fstMap> <outputFile>`
 
 #### bec-tool.py
 This tool unpacks the content from a bec-archive which is used by Gladius to store game and audio data. While unpacking a outout file is created that is necessary to repack the content into a new bec-archive.
@@ -36,9 +36,9 @@ The tool can also create a bec-archive from a previously unpacked archive. It is
 PS2 and GameCube version use slightly different variants of this archive which I couldn't get reproduce without an additional option "--gc" that will produce bec-archives which are compatible with the GameCube version.
 
 To unpack, call the tool with the "-unpack" option:
-```python3 tools/bec-tool.py -unpack <inputFile> <outputDir> <fileList>```.
-For example, to unpack gladius.bec:
+`python3 tools/bec-tool.py -unpack <inputFile> <outputDir> <fileList>`.
 
+For example, to unpack gladius.bec:
 ```python3 tools/bec-tool.py -unpack gladius.bec gladius_bec/ gladius_bec_fileList.txt```
 
 To pack files into an archive, call the tool with the "-pack" option:
@@ -61,7 +61,7 @@ To pack, call the tool with the "-pack" option:
 ```python3 tools/pak-tool.py -pack <inputDir> <fileList> <outputFile>```
 
 #### zlib-tool.py
-A general tool to easily compress and decompress files.
+A general tool to easily compress and decompress files. This tool is only used for the PS2 Version of the game.
 
 To compress, use the "-c" option:
 ```python3 tools/zlib-tool.py -c <inputFile> <outputFile>```
@@ -69,7 +69,7 @@ To compress, use the "-c" option:
 To decompress, use the "-x" option.
 ```python3 tools/zlib-tool.py -x <inputFile> <outputFile>```
 
-NOTE: You can change the level of compression using ```-l <0-9>```.
+*NOTE: You can change the level of compression using ```-l <0-9>```.*
 
 ### The Scripts
 Along with JimB16's tools, there are a few added scripts.
@@ -85,7 +85,7 @@ When using make on linux, there is definently an advanage over windows, especial
 
 #### Syntax
 
-##### gladius
+##### Shell Script
 For the shell script, "gladius", you run it by:
 ```bash
 ./gladius
@@ -143,7 +143,7 @@ Now the packed iso will be named "testrom.iso"
 
 *NOTE: If you have more than one flag that takes an agrument. you can not chain flags.*
 
-##### gladius.ps1
+##### Powershell Script
 For the powershell script, "gladius.ps1", you can run it by:
 ```powershell
 .\gladius.ps1
@@ -187,10 +187,10 @@ This script features the same functionality as the shell script. However, there 
     .\gladius.ps1 -IsoName testrom -clean -init -buildiso -Verbose
     ```
 
-Notes on parameters/flags
-- Flags that are considered switch flags or flags that take no agruments are lowercase.
-- Flags that take arguments are PascalCase.
-- "-Verbose" is the exception since it is a common parameter.
+- Notes on parameters/flags
+    - Flags that are considered switch flags or flags that take no agruments are lowercase.
+    - Flags that take arguments are PascalCase.
+    - "-Verbose" is the exception since it is a common parameter.
 
 For more information about the gladius.ps1 script:
 ```powershell
