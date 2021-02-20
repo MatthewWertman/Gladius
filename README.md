@@ -70,3 +70,129 @@ To decompress, use the "-x" option.
 ```python3 tools/zlib-tool.py -x <inputFile> <outputFile>```
 
 NOTE: You can change the level of compression using ```-l <0-9>```.
+
+### The Scripts
+Along with JimB16's tools, there are a few added scripts.
+The two scripts named gladius are functionally the same for different shells.
+These scripts essentially accomplish two things:
+
+1. Allows you to spend less time in the terminal or Command Prompt, thus faster workflow when modding.
+
+2. Gets rid of some hoop-jumping that is neccessary for the Makefile.
+
+#### Why? There is already a Makefile.
+When using make on linux, there is definently an advanage over windows, especially when it comes to the installation process. To use make on windows, you have two options. One is to download MinGW-w64 and add it your path and the other is setting up a linux subsystem in your windows install. While the first option isn't too bad, the second one requires learning a whole new shell (depending on what distro you choose) if you have not used linux before. Another thing is that this isn't a very optiminal use case of a Makefile in the first place. However, if you can setup make, I would highly recommend that you do.
+
+#### Syntax
+
+##### gladius
+For the shell script, "gladius", you run it by:
+```bash
+./gladius
+```
+If you supply no parameters/flags, it will return the usage of the script. For more information on each flag, run:
+```bash
+./gladius -h
+OR
+./gladius --help
+```
+*NOTE: Each flag has a shorthand and a longhand version. For example, "-n" or "--name".*
+
+##### Command Examples:
+
+To extract your ROM and the gladius.bec file:
+```bash
+./gladius -i
+```
+*NOTE: The script will look for a iso named 'baseiso.iso' by default. To specify your ROM (if it is differenly named or in a different location), add "-r" or "--rom" and then the name or path to your ROM.*
+
+*NOTE: This flag will also make a 'baseiso' folder in the current directory by default. To specify a new location for output, add the "-d" or "--dir" flag followed by a path.*
+
+To pack the gladius.bec file back up, you can run:
+```bash
+./gladius -b
+```
+
+OR if you want to go right to the iso:
+
+```bash
+./gladius -g
+```
+
+*NOTE: This will automatically repack the gladius.bec before packing the iso.*
+
+To remove old isos and build contents, you can run:
+```bash
+./gladius -c
+```
+This will remove the contents of the build directory and any isos that is not the specified base iso.
+
+All of these flags can be chained together. For example,
+
+```bash
+./gladius -cigv
+```
+
+The above command will clean the directory, extract the iso and .bec and then repack it into a iso. the "-v" will verbose each step.
+
+*NOTE: Make sure if you have a flag that takes an agrument (i.e. -n) that it is at the end of the chain followed by the argument.* For example:
+```bash
+./gladius -cigvn testrom
+```
+Now the packed iso will be named "testrom.iso"
+
+*NOTE: If you have more than one flag that takes an agrument. you can not chain flags.*
+
+##### gladius.ps1
+For the powershell script, "gladius.ps1", you can run it by:
+```powershell
+.\gladius.ps1
+```
+### IMPORTANT:
+By default, Powershell will not run ANY scripts. You need to set the ExecutionPolicy to "Unrestricted".
+
+There are a few ways of doing this.
+
+- To run just this script:
+
+    Open CMD or your terminal and paste this:
+    ```
+    powershell.exe -ExecutionPolicy Bypass .\gladius.ps1
+
+    OR
+
+    powershell -ep Bypass .\gladius.ps1
+    ```
+    This will allow you to run this script or any other script that you point to, although you will have to run it like this every time. You can add whatever flags you want as normal.
+
+- To run all future scripts:
+
+    Open a powershell as Adminisrator and paste:
+    ```
+    Set-ExecutionPolicy Unrestricted
+    ```
+    You will then be ask to type "y" to apply changes.
+
+    *NOTE: This will allow you to run any scripts signed or not and should be warned that this can be a security risk. Setting the execution policy to "RemoteSigned" may work and will require remotely downloaded scripts to be signed to run. This is untested however.*
+
+This script features the same functionality as the shell script. However, there are a few differences.
+- There are no shorthand options. All flags start with "-" and then the full flag. (i.e. "-help")
+- There is no flag chaining.
+    Taking the shell script example from above:
+    ```bash
+    ./gladius -cigvn testrom
+    ```
+    With gladius.ps1, this would be:
+    ```powershell
+    .\gladius.ps1 -IsoName testrom -clean -init -buildiso -Verbose
+    ```
+
+Notes on parameters/flags
+- Flags that are considered switch flags or flags that take no agruments are lowercase.
+- Flags that take arguments are PascalCase.
+- "-Verbose" is the exception since it is a common parameter.
+
+For more information about the gladius.ps1 script:
+```powershell
+.\gladius.ps1 -help
+```
