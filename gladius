@@ -21,41 +21,30 @@ GLADIUSBEC="$BASEDIR/gladius.bec"
     # $1 - Path to base iso
     # $2 - Directory for output
     # $3 - Output file list
-function unpack_iso()
-{
-    $PYTHON tools/ngciso-tool.py -unpack $1 $2 $3
-}
+function unpack_iso() { $PYTHON tools/ngciso-tool.py -unpack $1 $2 $3; }
 # @params
     # $1 - input bec file
     # $2 - Directory for output
     # $3 - Output file list
-function unpack_bec()
-{
-    $PYTHON tools/bec-tool.py -unpack $1 $2 $3
-}
+function unpack_bec() { $PYTHON tools/bec-tool.py -unpack $1 $2 $3; }
 # @params
     # $1 - Directory for input
     # $2 - fst file
     # $3 - fst map (iso file list)
     # $4 - output iso file
-function create_iso()
-{
-    $PYTHON tools/ngciso-tool.py -pack $1 $2 $3 $4
-}
+function create_iso() { $PYTHON tools/ngciso-tool.py -pack $1 $2 $3 $4; }
 # @params
     # $1 - Directory for input
     # $2 - Directory for output
     # $3 - file list containing all necessary files to pack
-function create_bec()
-{
-    $PYTHON tools/bec-tool.py -pack $1 $2 $3
-}
+function create_bec() { $PYTHON tools/bec-tool.py -pack $1 $2 $3; }
 
 function print_man
 {
 cat << EOF
 NAME
     gladius -- build and extract script for Gladius ROMs.
+
 DESCRIPTION
     Executes prewritten tools to extract and repackage Gladius ROMs.
 
@@ -80,50 +69,45 @@ EOF
 function print_usage
 {
     echo "Usage: $(basename $0) [--build-bec|-b] [--build-iso|-g] [--clean|-c] [--help|-h] [--init|-i] [--name|-n] [--verbose|-v]," >&2
-    echo "  where flags surrounded in '[]' are optional." >&2
+    echo "    where flags surrounded in '[]' are optional." >&2
 }
-
 
 for arg in "$@"; do
     shift
     case "$arg" in
-   "--build-bec") set -- "$@" "-b"      ;;
-   "--build-iso") set -- "$@" "-g"      ;;
-       "--clean") set -- "$@" "-c"      ;;
-        "--help") set -- "$@" "-h"      ;;
-        "--init") set -- "$@" "-i"      ;;
-        "--name") set -- "$@" "-n"      ;;
-     "--verbose") set -- "$@" "-v"      ;;
-              * ) set -- "$@" "$arg"
+       "--build-bec") set -- "$@" "-b"      ;;
+       "--build-iso") set -- "$@" "-g"      ;;
+           "--clean") set -- "$@" "-c"      ;;
+            "--help") set -- "$@" "-h"      ;;
+            "--init") set -- "$@" "-i"      ;;
+            "--name") set -- "$@" "-n"      ;;
+         "--verbose") set -- "$@" "-v"      ;;
+                  * ) set -- "$@" "$arg"
     esac
 done
 
 OPTIND=1
-while getopts ":bcghinv" opt; do
+while getopts ":bcghivn:" opt; do
     case "$opt" in
         "b") BUILDBEC=1 ;;
         "c") CLEAN=1 ;;
         "g") BUILDISO=1 ;;
         "h") print_man; exit 0 ;;
         "i") INIT=1 ;;
-        "n") ISONAME="$OPTARG"; ;;
+        "n") ISONAME="$OPTARG" ;;
         "v") VERBOSE="-v" ;;
         \? ) echo "Error: Invalid parameter flag." >&2; print_usage >&2; exit 1 ;;
     esac
 done
+if [[ $OPTIND -eq 1 ]]; then print_usage >&2; exit 1; fi
 shift $(($OPTIND - 1))
-
-if [[ $# -eq 0 ]]; then
-    print_usage >&2
-    exit 1
-fi
 
 if [[ CLEAN -eq 1 ]]; then
     if [[ ! "$VERBOSE" == "" ]]; then
         echo "Removing build contents and modified isos..."
     fi
     $RM_F build/*
-    find *.iso ! -name 'baseiso.iso' -type f | xargs rm -f
+    find *.iso ! -name 'baseiso.iso' -type f -exec rm -f {} +
 fi
 
 if [[ INIT -eq 1 ]]; then
@@ -131,8 +115,8 @@ if [[ INIT -eq 1 ]]; then
         echo "Extracting baseiso.iso to 'baseiso' directory..."
     fi
     $MKDIR_P $BASEDIR
-    unpack_iso $BASEISO $BASEDIR BaseISO_FileList.txt
-    unpack_bec $GLADIUSBEC $BASEDIR/gladius_bec/ gladius_bec_FileList.txt
+    unpack_iso ./$BASEISO ./$BASEDIR/ BaseISO_FileList.txt
+    unpack_bec ./$GLADIUSBEC ./$BASEDIR/gladius_bec/ gladius_bec_FileList.txt
 fi
 
 if [[ BUILDBEC -eq 1 ]]; then
@@ -140,7 +124,7 @@ if [[ BUILDBEC -eq 1 ]]; then
         echo "Repacking gladius.bec..."
     fi
     $MKDIR_P build/
-    create_bec $BASEDIR/gladius_bec/ build/gladius.bec $BASEDIR/gladius_bec/gladius_bec_FileList.txt
+    create_bec ./$BASEDIR/gladius_bec/ ./build/gladius.bec ./$BASEDIR/gladius_bec/gladius_bec_FileList.txt
 fi
 
 if [[ BUILDISO -eq 1 ]]; then
@@ -149,11 +133,10 @@ if [[ BUILDISO -eq 1 ]]; then
     fi
     $MKDIR_P build/
     if [[ BUILDBEC -eq 0 ]]; then
-        create_bec $BASEDIR/gladius_bec/ build/gladius.bec $BASEDIR/gladius_bec/gladius_bec_FileList.txt
+        create_bec ./$BASEDIR/gladius_bec/ ./build/gladius.bec ./$BASEDIR/gladius_bec/gladius_bec_FileList.txt
     fi
-    cp -v build/gladius.bec $BASEDIR
-    create_iso $BASEDIR $BASEDIR/fst.bin $BASEDIR/BaseISO_FileList.txt "$ISONAME.iso"
-    mv -f gladius.iso "$ISONAME.iso"
+    cp -v ./build/gladius.bec ./$BASEDIR
+    create_iso ./$BASEDIR ./$BASEDIR/fst.bin ./$BASEDIR/BaseISO_FileList.txt "$ISONAME.iso"
     md5sum "$ISONAME.iso"
 fi
 
