@@ -15,7 +15,6 @@ VERBOSE=""
 ISONAME="gladius"
 BASEDIR="baseiso"
 BASEISO="baseiso.iso"
-GLADIUSBEC="$BASEDIR/gladius.bec"
 
 # @params
     # $1 - Path to base iso
@@ -60,6 +59,10 @@ DESCRIPTION
             Unpacks iso and gladius.bec to 'baseiso' directory.
     -n, --name
             custom name for iso. defaults to 'gladius'.
+    -d, --basedir
+            point to specified output directory. Default is 'baseiso'.
+    -r, --rom
+            point to specified gladius ROM to extract. Deafult is 'baseiso.iso'.
     -v, --verbose
             shows more detailed information of what the script is doing. Use this
             for debugging.
@@ -78,23 +81,27 @@ for arg in "$@"; do
        "--build-bec") set -- "$@" "-b"      ;;
        "--build-iso") set -- "$@" "-g"      ;;
            "--clean") set -- "$@" "-c"      ;;
+             "--dir") set -- "$@" "-d"      ;;
             "--help") set -- "$@" "-h"      ;;
             "--init") set -- "$@" "-i"      ;;
             "--name") set -- "$@" "-n"      ;;
+             "--rom") set -- "$@" "-r"      ;;
          "--verbose") set -- "$@" "-v"      ;;
                   * ) set -- "$@" "$arg"
     esac
 done
 
 OPTIND=1
-while getopts ":bcghivn:" opt; do
+while getopts ":d:n:r:bcghiv" opt; do
     case "$opt" in
         "b") BUILDBEC=1 ;;
         "c") CLEAN=1 ;;
+        "d") BASEDIR="$OPTARG" ;;
         "g") BUILDISO=1 ;;
         "h") print_man; exit 0 ;;
         "i") INIT=1 ;;
         "n") ISONAME="$OPTARG" ;;
+        "r") BASEISO="$OPTARG" ;;
         "v") VERBOSE="-v" ;;
         \? ) echo "Error: Invalid parameter flag." >&2; print_usage >&2; exit 1 ;;
     esac
@@ -107,16 +114,16 @@ if [[ CLEAN -eq 1 ]]; then
         echo "Removing build contents and modified isos..."
     fi
     $RM_F build/*
-    find *.iso ! -name 'baseiso.iso' -type f -exec rm -f {} +
+    find *.iso ! -name $BASEISO -type f -exec rm -f {} +
 fi
 
 if [[ INIT -eq 1 ]]; then
     if [[ ! "$VERBOSE" == "" ]]; then
-        echo "Extracting baseiso.iso to 'baseiso' directory..."
+        echo "Extracting $BASEISO to '$BASEDIR' directory..."
     fi
     $MKDIR_P $BASEDIR
     unpack_iso ./$BASEISO ./$BASEDIR/ BaseISO_FileList.txt
-    unpack_bec ./$GLADIUSBEC ./$BASEDIR/gladius_bec/ gladius_bec_FileList.txt
+    unpack_bec ./$BASEDIR/gladius.bec ./$BASEDIR/gladius_bec/ gladius_bec_FileList.txt
 fi
 
 if [[ BUILDBEC -eq 1 ]]; then
@@ -129,7 +136,7 @@ fi
 
 if [[ BUILDISO -eq 1 ]]; then
     if [[ ! "$VERBOSE" == "" ]]; then
-        echo "Repacking gladius iso..."
+        echo "Packing $ISONAME iso..."
     fi
     $MKDIR_P build/
     if [[ BUILDBEC -eq 0 ]]; then
