@@ -10,6 +10,7 @@ INIT=0
 BUILDBEC=0
 BUILDISO=0
 CLEAN=0
+ECHO=0
 VERBOSE=""
 
 ISONAME="gladius"
@@ -51,6 +52,10 @@ DESCRIPTION
             Repackages the gladius.bec file in  the 'build' directory.
     -c, --clean
             Removes build directory contents and any previously built isos.
+    -d, --dir
+            point to specified output directory. Default is 'baseiso'.
+    -e, --echo
+            outputs the commands to be run without exucuting them.
     -g, --build-iso
             Repackages the gladius ROM in the project directory.
     -h, --help
@@ -59,8 +64,6 @@ DESCRIPTION
             Unpacks iso and gladius.bec to 'baseiso' directory.
     -n, --name
             custom name for iso. defaults to 'gladius'.
-    -d, --basedir
-            point to specified output directory. Default is 'baseiso'.
     -r, --rom
             point to specified gladius ROM to extract. Deafult is 'baseiso.iso'.
     -v, --verbose
@@ -71,8 +74,15 @@ EOF
 
 function print_usage
 {
-    echo "Usage: $(basename $0) [--build-bec|-b] [--build-iso|-g] [--clean|-c] [--help|-h] [--init|-i] [--name|-n] [--verbose|-v]," >&2
+    echo "Usage: $(basename $0) [--build-bec|-b] [--build-iso|-g] [--clean|-c] [--echo|-e] [--help|-h] [--init|-i] [--name|-n] [--verbose|-v]," >&2
     echo "    where flags surrounded in '[]' are optional." >&2
+}
+
+function write_verbose ()
+{
+    if [[ "$VERBOSE" == "-v" ]]; then
+        echo $1
+    fi
 }
 
 for arg in "$@"; do
@@ -82,6 +92,7 @@ for arg in "$@"; do
        "--build-iso") set -- "$@" "-g"      ;;
            "--clean") set -- "$@" "-c"      ;;
              "--dir") set -- "$@" "-d"      ;;
+            "--echo") set -- "$@" "-e"      ;;
             "--help") set -- "$@" "-h"      ;;
             "--init") set -- "$@" "-i"      ;;
             "--name") set -- "$@" "-n"      ;;
@@ -92,11 +103,12 @@ for arg in "$@"; do
 done
 
 OPTIND=1
-while getopts ":d:n:r:bcghiv" opt; do
+while getopts ":d:n:r:bceghiv" opt; do
     case "$opt" in
         "b") BUILDBEC=1 ;;
         "c") CLEAN=1 ;;
         "d") BASEDIR="$OPTARG" ;;
+        "e") ECHO=1 ;;
         "g") BUILDISO=1 ;;
         "h") print_man; exit 0 ;;
         "i") INIT=1 ;;
@@ -109,42 +121,41 @@ done
 if [[ $OPTIND -eq 1 ]]; then print_usage >&2; exit 1; fi
 shift $(($OPTIND - 1))
 
+if [[ ECHO -eq 1 ]]; then
+    write_verbose "Echoing necessary commands... "
+    EORR='echo'
+else
+    EORR=''
+fi
+
 if [[ CLEAN -eq 1 ]]; then
-    if [[ ! "$VERBOSE" == "" ]]; then
-        echo "Removing build contents and modified isos..."
-    fi
-    $RM_F build/*
-    find *.iso ! -name $BASEISO -type f -exec rm -f {} +
+    write_verbose "Removing build contents and modified isos..."
+    $EORR $RM_F build/*
+    $EORR find *.iso ! -name $BASEISO -type f -exec rm -f {} +
 fi
 
 if [[ INIT -eq 1 ]]; then
-    if [[ ! "$VERBOSE" == "" ]]; then
-        echo "Extracting $BASEISO to '$BASEDIR' directory..."
-    fi
-    $MKDIR_P $BASEDIR
-    unpack_iso ./$BASEISO ./$BASEDIR/ BaseISO_FileList.txt
-    unpack_bec ./$BASEDIR/gladius.bec ./$BASEDIR/gladius_bec/ gladius_bec_FileList.txt
+    write_verbose "Extracting $BASEISO to '$BASEDIR' directory..."
+    $EORR $MKDIR_P $BASEDIR
+    $EORR unpack_iso ./$BASEISO ./$BASEDIR/ BaseISO_FileList.txt
+    $EORR unpack_bec ./$BASEDIR/gladius.bec ./$BASEDIR/gladius_bec/ gladius_bec_FileList.txt
 fi
 
 if [[ BUILDBEC -eq 1 ]]; then
-    if [[ ! "$VERBOSE" == "" ]]; then
-        echo "Repacking gladius.bec..."
-    fi
-    $MKDIR_P build/
-    create_bec ./$BASEDIR/gladius_bec/ ./build/gladius.bec ./$BASEDIR/gladius_bec/gladius_bec_FileList.txt
+    write_verbose "Repacking gladius.bec..."
+    $EORR $MKDIR_P build/
+    $EORR create_bec ./$BASEDIR/gladius_bec/ ./build/gladius.bec ./$BASEDIR/gladius_bec/gladius_bec_FileList.txt
 fi
 
 if [[ BUILDISO -eq 1 ]]; then
-    if [[ ! "$VERBOSE" == "" ]]; then
-        echo "Packing $ISONAME iso..."
-    fi
-    $MKDIR_P build/
+    write_verbose "Packing $ISONAME iso..."
+    $EORR $MKDIR_P build/
     if [[ BUILDBEC -eq 0 ]]; then
-        create_bec ./$BASEDIR/gladius_bec/ ./build/gladius.bec ./$BASEDIR/gladius_bec/gladius_bec_FileList.txt
+        $EORR create_bec ./$BASEDIR/gladius_bec/ ./build/gladius.bec ./$BASEDIR/gladius_bec/gladius_bec_FileList.txt
     fi
-    cp -v ./build/gladius.bec ./$BASEDIR
-    create_iso ./$BASEDIR ./$BASEDIR/fst.bin ./$BASEDIR/BaseISO_FileList.txt "$ISONAME.iso"
-    md5sum "$ISONAME.iso"
+    $EORR cp -v ./build/gladius.bec ./$BASEDIR
+    $EORR create_iso ./$BASEDIR ./$BASEDIR/fst.bin ./$BASEDIR/BaseISO_FileList.txt "$ISONAME.iso"
+    $EORR md5sum "$ISONAME.iso"
 fi
 
 exit 0

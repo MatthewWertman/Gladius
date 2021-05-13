@@ -4,6 +4,7 @@ Param (
     [string]$BaseDir="baseiso",
     [string]$Rom="baseiso.iso",
     [switch]$init,
+    [switch]$echo,
     [switch]$buildbec,
     [switch]$buildiso,
     [switch]$clean,
@@ -30,38 +31,47 @@ Function Close-Bec { & $Python .\tools\bec-tool.py -pack $args[0] $args[1] $args
 
 Function Print-Man
 {
-    Write-Output( 
+    Write-Output(
 "NAME
     gladius -- build and extract script for Gladius ROMs.
 
 DESCRIPTION
     Executes prewritten tools to extract and repackage Gladius ROMs.
 
+    -BaseDir
+            Points to output directory for unpacking. Default is 'baseiso'.
     -buildbec
             Repackages the gladius.bec file in  the 'build' directory.
-    -clean
-            Removes build directory contents and any previously built isos.
     -buildiso
             Repackages the gladius ROM in the project directory.
+    -clean
+            Removes build directory contents and any previously built isos.
+    -echo
+            Outputs the commands to be run without executing them.
     -help
-            shows this information and exits.
+            Shows this information and exits.
     -init
             Unpacks iso and gladius.bec to BaseDir directory.
     -IsoName
             custom name for iso. defaults to 'gladius'.
-    -BaseDir
-            Points to output directory for unpacking. Default is 'baseiso'.
     -Rom
             Points to Gladius ROM. Default is 'baseiso.iso'
     -Verbose
-            shows more detailed information of what the script is doing. Use this
+            Shows more detailed information of what the script is doing. Use this
             for debugging.")
 }
 
 Function Print-Usage
 {
-    Write-Output "Usage: gladius.ps1 [-IsoName] [-BaseDir] [-BaseIso] [-Rom] [-init] [-clean] [-buildbec] [-buildiso] [-help] [-Verbose],"
+    Write-Output "Usage: gladius.ps1 [-IsoName] [-BaseDir] [-BaseIso] [-Rom] [-init] [-clean] [-buildbec] [-buildiso] [-help] [-echo] [-Verbose],"
     Write-Output "    where flags surrounded in '[]' are optional."
+}
+
+Function EORR
+{
+    if ($echo) {
+        Write-Host $args
+    }
 }
 
 if ( $PSBoundParameters.Count -eq 0 )
@@ -79,36 +89,36 @@ if ($help)
 if ($clean)
 {
    Write-Verbose -Message "Removing build contents and modified isos..."
-   Remove-Item .\build\* -Recurse -Force
-   Get-Item *.iso -Exclude $Rom | Remove-Item -Recurse -Force
+   EORR Remove-Item .\build\* -Recurse -Force
+   EORR Get-Item *.iso -Exclude $Rom | Remove-Item -Recurse -Force
 }
 
 if ($init)
 {
-    New-Item -ItemType Directory -Force -Path .\$BaseDir | Out-Null
+    EORR New-Item -ItemType Directory -Force -Path .\$BaseDir | Out-Null
     Write-Verbose -Message ("Extracting {0} to '{1}' directory..." -f $Rom, $BaseDir)
-    Open-Iso $Rom $BaseDir\ BaseISO_FileList.txt
+    EORR Open-Iso $Rom $BaseDir\ BaseISO_FileList.txt
     Write-Verbose -Message ("Extracting gladius.bec to '{0}\gladius_bec\'..." -f $BaseDir)
-    Open-Bec $BaseDir\gladius.bec $BaseDir\gladius_bec\ gladius_bec_FileList.txt
+    EORR Open-Bec $BaseDir\gladius.bec $BaseDir\gladius_bec\ gladius_bec_FileList.txt
 }
 
 if ($buildbec)
 {
-    New-Item -ItemType Directory -Force -Path .\build | Out-Null
+    EORR New-Item -ItemType Directory -Force -Path .\build | Out-Null
     Write-Verbose -Message "Repacking gladius.bec..."
-    Close-Bec $BaseDir\gladius_bec\ .\build\gladius.bec $BaseDir\gladius_bec\gladius_bec_FileList.txt
+    EORR Close-Bec $BaseDir\gladius_bec\ .\build\gladius.bec $BaseDir\gladius_bec\gladius_bec_FileList.txt
 }
 
 if ($buildiso)
 {
-    New-Item -ItemType Directory -Force -Path .\build | Out-Null
+    EORR New-Item -ItemType Directory -Force -Path .\build | Out-Null
     if (!($buildbec))
     {
-         Write-Verbose -Message "Repacking gladius.bec..."
-         Close-Bec $BaseDir\gladius_bec\ .\build\gladius.bec $BaseDir\gladius_bec\gladius_bec_FileList.txt
+        Write-Verbose -Message "Repacking gladius.bec..."
+        EORR Close-Bec $BaseDir\gladius_bec\ .\build\gladius.bec $BaseDir\gladius_bec\gladius_bec_FileList.txt
     }
     Write-Verbose -Message ("Moving build\gladius.bec to {0} directory..." -f $BaseDir)
-    Copy-Item -Path .\build\gladius.bec -Destination $BaseDir\
+    EORR Copy-Item -Path .\build\gladius.bec -Destination $BaseDir\
     Write-Verbose -Message ("Packing {0}.iso..." -f $IsoName)
-    Close-Iso $BaseDir $BaseDir\fst.bin $BaseDir\BaseISO_FileList.txt ("{0}.iso" -f $IsoName)
+    EORR Close-Iso $BaseDir $BaseDir\fst.bin $BaseDir\BaseISO_FileList.txt ("{0}.iso" -f $IsoName)
 }
