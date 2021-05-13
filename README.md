@@ -31,12 +31,12 @@ To pack, call the tool with the "-pack" option:
 `python3 tools/ngciso-tool.py -pack <inputDir> <fstFile> <fstMap> <outputFile>`
 
 #### bec-tool.py
-This tool unpacks the content from a bec-archive which is used by Gladius to store game and audio data. While unpacking a outout file is created that is necessary to repack the content into a new bec-archive.
-The tool can also create a bec-archive from a previously unpacked archive. It is possible to repack with changed files, it is not possible to add files since this requires additional information about all files in the archive.
-PS2 and GameCube version use slightly different variants of this archive which I couldn't get reproduce without an additional option "--gc" that will produce bec-archives which are compatible with the GameCube version.
+This tool unpacks the content from a bec-archive which is used by Gladius to store game and audio data. While unpacking, a output file is created that is necessary to repack the content into a new bec-archive.
+While it's possible to repack with changed files, it is not possible to add files since this requires additional information about all files in the archive.
+PS2 and GameCube version use slightly different variants of this archive which I couldn't reproduce without an additional option "--gc" that will produce bec-archives which are compatible with the GameCube version.
 
 To unpack, call the tool with the "-unpack" option:
-`python3 tools/bec-tool.py -unpack <inputFile> <outputDir> <fileList>`.
+```python3 tools/bec-tool.py -unpack <inputFile> <outputDir> <fileList>```.
 
 For example, to unpack gladius.bec:
 ```python3 tools/bec-tool.py -unpack gladius.bec gladius_bec/ gladius_bec_fileList.txt```
@@ -135,7 +135,7 @@ All of these flags can be chained together. For example,
 
 The above command will clean the directory, extract the iso and .bec and then repack it into a iso. the "-v" will verbose each step.
 
-*NOTE: Make sure if you have a flag that takes an agrument (i.e. -n) that it is at the end of the chain followed by the argument.* For example:
+*NOTE: if you have a flag that takes an agrument (i.e. -n), make sure that it is at the end of the chain followed by the argument.* For example:
 ```bash
 ./gladius -cigvn testrom
 ```
@@ -173,7 +173,7 @@ There are a few ways of doing this.
     ```
     You will then be ask to type "y" to apply changes.
 
-    *NOTE: This will allow you to run any scripts signed or not and should be warned that this can be a security risk. Setting the execution policy to "RemoteSigned" may work and will require remotely downloaded scripts to be signed to run. This is untested however.*
+    *NOTE: This will allow you to run any scripts signed or not and should be warned that this can be a security risk.
 
 This script features the same functionality as the shell script. However, there are a few differences.
 - There are no shorthand options. All flags start with "-" and then the full flag. (i.e. "-help")
