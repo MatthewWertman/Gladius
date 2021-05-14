@@ -4,8 +4,10 @@ Param (
     [string]$BaseDir="baseiso",
     [string]$Rom="baseiso.iso",
     [switch]$init,
+    [switch]$initaudio,
     [switch]$echo,
-    [switch]$buildbec,
+    [switch]$buildaudio,
+    [switch]$builddata,
     [switch]$buildiso,
     [switch]$clean,
     [switch]$help
@@ -40,7 +42,9 @@ DESCRIPTION
 
     -BaseDir
             Points to output directory for unpacking. Default is 'baseiso'.
-    -buildbec
+    -buildaudio
+            Repackages the audio,bec file in the 'build' directory.
+    -builddata
             Repackages the gladius.bec file in  the 'build' directory.
     -buildiso
             Repackages the gladius ROM in the project directory.
@@ -52,6 +56,8 @@ DESCRIPTION
             Shows this information and exits.
     -init
             Unpacks iso and gladius.bec to BaseDir directory.
+    -initaudio
+            Unpacks the audio.bec file to BaseDir directory.
     -IsoName
             custom name for iso. defaults to 'gladius'.
     -Rom
@@ -63,7 +69,7 @@ DESCRIPTION
 
 Function Print-Usage
 {
-    Write-Output "Usage: gladius.ps1 [-IsoName] [-BaseDir] [-BaseIso] [-Rom] [-init] [-clean] [-buildbec] [-buildiso] [-help] [-echo] [-Verbose],"
+    Write-Output "Usage: gladius.ps1 [-IsoName] [-BaseDir] [-Rom] [-init] [-initaudio] [-clean] [-buildaudio] [-builddata] [-buildiso] [-help] [-echo] [-Verbose],"
     Write-Output "    where flags surrounded in '[]' are optional."
 }
 
@@ -102,7 +108,20 @@ if ($init)
     EORR Open-Bec $BaseDir\gladius.bec $BaseDir\gladius_bec\ gladius_bec_FileList.txt
 }
 
-if ($buildbec)
+if ($initaudio)
+{
+    Write-Verbose -Message ("Extracting audio.bec to '{0}\audio_bec\'..." -f $BaseDir)
+    EORR Open-Bec $BaseDir\audio.bec $BaseDir\audio_bec\ audio_bec_FileList.txt
+}
+
+if ($buildaudio)
+{
+    EORR New-Item -ItemType Directory -Force -Path .\build | Out-Null
+    Write-Verbose -Message "Repacking audio.bec..."
+    EORR Close-Bec $BaseDir\audio_bec\ .\build\audio.bec $BaseDir\audio_bec\audio_bec_FileList.txt
+}
+
+if ($builddata)
 {
     EORR New-Item -ItemType Directory -Force -Path .\build | Out-Null
     Write-Verbose -Message "Repacking gladius.bec..."
@@ -112,10 +131,16 @@ if ($buildbec)
 if ($buildiso)
 {
     EORR New-Item -ItemType Directory -Force -Path .\build | Out-Null
-    if (!($buildbec))
+    if (!($builddata))
     {
         Write-Verbose -Message "Repacking gladius.bec..."
         EORR Close-Bec $BaseDir\gladius_bec\ .\build\gladius.bec $BaseDir\gladius_bec\gladius_bec_FileList.txt
+    }
+    if (!($buildaudio) -and (Test-Path -Path $BaseDir\audio_bec))
+    {
+        Write-Verbose -Message "Repacking audio.bec..."
+        EORR Close-Bec $BaseDir\audio_bec\ .\build\audio.bec $BaseDir\audio_bec\audio_bec_FileList.txt
+        EORR Copy-Item -Path .\build\audio.bec -Destination $BaseDir\
     }
     Write-Verbose -Message ("Moving build\gladius.bec to {0} directory..." -f $BaseDir)
     EORR Copy-Item -Path .\build\gladius.bec -Destination $BaseDir\

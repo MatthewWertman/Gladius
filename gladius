@@ -6,8 +6,10 @@ RM_F="$(which rm) -f"
 PYTHON="$(which python3)"
 
 #Flags
+AUDIO=0
 INIT=0
-BUILDBEC=0
+BUILDAUDIO=0
+BUILDDATA=0
 BUILDISO=0
 CLEAN=0
 ECHO=0
@@ -48,7 +50,9 @@ NAME
 DESCRIPTION
     Executes prewritten tools to extract and repackage Gladius ROMs.
 
-    -b, --build-bec
+    -a, --build-audio
+            Repackages the audio.bec file in the 'build' directory.
+    -b, --build-data
             Repackages the gladius.bec file in  the 'build' directory.
     -c, --clean
             Removes build directory contents and any previously built isos.
@@ -66,6 +70,8 @@ DESCRIPTION
             custom name for iso. defaults to 'gladius'.
     -r, --rom
             point to specified gladius ROM to extract. Deafult is 'baseiso.iso'.
+    -s, --init-audio
+            Unpacks the audio.bec to the 'baseiso' directory.
     -v, --verbose
             shows more detailed information of what the script is doing. Use this
             for debugging.
@@ -74,7 +80,7 @@ EOF
 
 function print_usage
 {
-    echo "Usage: $(basename $0) [--build-bec|-b] [--build-iso|-g] [--clean|-c] [--echo|-e] [--help|-h] [--init|-i] [--name|-n] [--verbose|-v]," >&2
+    echo "Usage: $(basename $0) [--build-audio|-a] [--build-data|-b] [--build-iso|-g] [--clean|-c] [--echo|-e] [--help|-h] [--init|-i] [--name|-n] [--rom|-r] [--init-audio|-s] [--verbose|-v]," >&2
     echo "    where flags surrounded in '[]' are optional." >&2
 }
 
@@ -88,13 +94,15 @@ function write_verbose ()
 for arg in "$@"; do
     shift
     case "$arg" in
-       "--build-bec") set -- "$@" "-b"      ;;
+     "--build-audio") set -- "$@" "-a"      ;;
+      "--build-data") set -- "$@" "-b"      ;;
        "--build-iso") set -- "$@" "-g"      ;;
            "--clean") set -- "$@" "-c"      ;;
              "--dir") set -- "$@" "-d"      ;;
             "--echo") set -- "$@" "-e"      ;;
             "--help") set -- "$@" "-h"      ;;
             "--init") set -- "$@" "-i"      ;;
+      "--init-audio") set -- "$@" "-s"      ;;
             "--name") set -- "$@" "-n"      ;;
              "--rom") set -- "$@" "-r"      ;;
          "--verbose") set -- "$@" "-v"      ;;
@@ -103,9 +111,10 @@ for arg in "$@"; do
 done
 
 OPTIND=1
-while getopts ":d:n:r:bceghiv" opt; do
+while getopts ":d:n:r:abceghisv" opt; do
     case "$opt" in
-        "b") BUILDBEC=1 ;;
+        "a") BUILDAUDIO=1 ;;
+        "b") BUILDDATA=1 ;;
         "c") CLEAN=1 ;;
         "d") BASEDIR="$OPTARG" ;;
         "e") ECHO=1 ;;
@@ -114,6 +123,7 @@ while getopts ":d:n:r:bceghiv" opt; do
         "i") INIT=1 ;;
         "n") ISONAME="$OPTARG" ;;
         "r") BASEISO="$OPTARG" ;;
+        "s") AUDIO=1 ;;
         "v") VERBOSE="-v" ;;
         \? ) echo "Error: Invalid parameter flag." >&2; print_usage >&2; exit 1 ;;
     esac
@@ -141,7 +151,18 @@ if [[ INIT -eq 1 ]]; then
     $EORR unpack_bec ./$BASEDIR/gladius.bec ./$BASEDIR/gladius_bec/ gladius_bec_FileList.txt
 fi
 
-if [[ BUILDBEC -eq 1 ]]; then
+if [[ AUDIO -eq 1 ]]; then
+    write_verbose "Extracting audio.bec to '$BASEDIR' directory..."
+    $EORR unpack_bec ./$BASEDIR/audio.bec ./$BASEDIR/audio_bec/ audio_bec_FileList.txt
+fi
+
+if [[ BUILDAUDIO -eq 1 ]]; then
+    write_verbose "Repacking audio.bec..."
+    $EORR $MKDIR_P build/
+    $EORR create_bec ./$BASEDIR/audio_bec/ ./build/audio.bec ./$BASEDIR/audio_bec/audio_bec_FileList.txt
+fi
+
+if [[ BUILDDATA -eq 1 ]]; then
     write_verbose "Repacking gladius.bec..."
     $EORR $MKDIR_P build/
     $EORR create_bec ./$BASEDIR/gladius_bec/ ./build/gladius.bec ./$BASEDIR/gladius_bec/gladius_bec_FileList.txt
@@ -150,8 +171,12 @@ fi
 if [[ BUILDISO -eq 1 ]]; then
     write_verbose "Packing $ISONAME iso..."
     $EORR $MKDIR_P build/
-    if [[ BUILDBEC -eq 0 ]]; then
+    if [[ BUILDDATA -eq 0 ]]; then
         $EORR create_bec ./$BASEDIR/gladius_bec/ ./build/gladius.bec ./$BASEDIR/gladius_bec/gladius_bec_FileList.txt
+    fi
+    if [[ BUILDAUDIO -eq 0 && -d ./$BASEDIR/audio_bec ]]; then
+        $EORR create_bec ./$BASEDIR/audio_bec/ ./build/audio.bec ./$BASEDIR/audio_bec/audio_bec_FileList.txt
+        $EORR cp -v ./build/audio.bec ./$BASEDIR
     fi
     $EORR cp -v ./build/gladius.bec ./$BASEDIR
     $EORR create_iso ./$BASEDIR ./$BASEDIR/fst.bin ./$BASEDIR/BaseISO_FileList.txt "$ISONAME.iso"
