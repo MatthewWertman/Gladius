@@ -77,6 +77,12 @@ Function EORR
 {
     if ($echo) {
         Write-Host $args
+    } else {
+        ForEach ($arg in $args)
+        {
+            $cmd+="$arg "
+        }
+        Invoke-Expression $cmd
     }
 }
 
