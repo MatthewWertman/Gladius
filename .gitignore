@@ -5,6 +5,7 @@ __pycache__/
 *.o
 *.d
 *.bin
+*.lnk
 
 # Build
 build/
