@@ -1,0 +1,47 @@
+#!/bin/bash
+# launch -- launches dolphin with specified ROM.
+
+DOLPHIN="$(which dolphin-emu)"
+
+ROM="gladius.iso"
+OVERRIDE=0
+
+function print_man
+{
+    cat << EOF
+    NAME
+        launch -- launches dolphin with specified ROM.
+
+    DESCRIPTION
+        -r, --rom
+                Points to ROM. Default is "gladius.iso".
+        -o, --override
+                Override the gladius game settings with the GLSE64.ini in the project directory.
+EOF
+}
+
+for arg in "$@"; do
+    shift
+    case "$arg" in
+        "--rom") set -- "$@" "-r"       ;;
+   "--override") set -- "$@" "-o"       ;;
+             * ) set -- "$@" "$arg"
+    esac
+done
+
+OPTIND=1
+while getopts ":r:o" opt; do
+    case "$opt" in
+        "r") ROM="$OPTARG" ;;
+        "o") OVERRIDE=1 ;;
+        \? ) echo "Error: Invalid parameter flag." >&2; exit 1 ;;
+    esac
+done
+if [[ $OPTIND -eq 1 ]]; then exit 1; fi
+shift $(($OPTIND - 1))
+
+if [[ OVERRIDE -eq 1 ]]; then
+    cp -v $(pwd)/GLSE64.ini $HOME/.dolphin-emu/GameSettings/
+fi
+
+$DOLPHIN -b -e $(pwd)/$Rom $@
