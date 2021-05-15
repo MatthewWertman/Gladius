@@ -1,28 +1,36 @@
 #!/bin/bash
-# launch -- launches dolphin with specified ROM.
-
 DOLPHIN="$(which dolphin-emu)"
 
+GLADIUSPATH="$(pwd)"
+LOCALGS="$HOME/.dolphin-emu/GameSettings/"
 ROM="gladius.iso"
+CONFIG=""
 OVERRIDE=0
 
 function print_man
 {
     cat << EOF
-    NAME
-        launch -- launches dolphin with specified ROM.
+NAME
+    launch
+DESCRIPTION
+    launches a Gladius ROM with dolphin.
 
-    DESCRIPTION
-        -r, --rom
-                Points to ROM. Default is "gladius.iso".
-        -o, --override
-                Override the gladius game settings with the GLSE64.ini in the project directory.
+    -C, --config
+            Pass in configuration options to dolphin. Follows the syntax of <System>.<Section>.<Key>=<Value>.
+    -h, --help
+            Shows this informations and exits.
+    -r, --rom
+            Points to ROM. Default is "gladius.iso".
+    -o, --override
+            Override the gladius game settings with the GLSE64.ini in the project directory.
 EOF
 }
 
 for arg in "$@"; do
     shift
     case "$arg" in
+     "--config") set -- "$@" "-C"       ;;
+       "--help") set -- "$@" "-h"       ;;
         "--rom") set -- "$@" "-r"       ;;
    "--override") set -- "$@" "-o"       ;;
              * ) set -- "$@" "$arg"
@@ -30,18 +38,26 @@ for arg in "$@"; do
 done
 
 OPTIND=1
-while getopts ":r:o" opt; do
+while getopts ":r:C:oh" opt; do
     case "$opt" in
+        "C") CONFIG+=" -C $OPTARG" ;;
+        "h") print_man; exit 0 ;;
         "r") ROM="$OPTARG" ;;
         "o") OVERRIDE=1 ;;
-        \? ) echo "Error: Invalid parameter flag." >&2; exit 1 ;;
+        \? ) echo "Error: Invalid parameter flag." >&2; exit 1;;
     esac
 done
-if [[ $OPTIND -eq 1 ]]; then exit 1; fi
 shift $(($OPTIND - 1))
 
 if [[ OVERRIDE -eq 1 ]]; then
-    cp -v $(pwd)/GLSE64.ini $HOME/.dolphin-emu/GameSettings/
+    if [[ -d $LOCALGS ]]; then
+        cp -v $GLADIUSPATH/GLSE64.ini $LOCALGS
+    elif [[ -d "$HOME/.local/dolphin-emu/GameSettings" ]]; then
+        cp -v $GLADIUSPATH/GLSE64.ini "$HOME/.local/dolphin-emu/GameSettings"
+    else
+        echo "Could not find 'GameSettings' directory. Is Dolphin installed?" >&2
+        exit 1
+    fi
 fi
 
-$DOLPHIN -b -e $(pwd)/$Rom $@
+$DOLPHIN -b -e "$GLADIUSPATH/$ROM" $CONFIG
