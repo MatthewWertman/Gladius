@@ -32,8 +32,6 @@ $Global:PS = $false
 $Global:DATABEC = "gladius.bec"
 $Global:AUDIOBEC = "audio.bec"
 
-# 7Zip
-$P7Zip = (Get-ChildItem -Path "C:\Program Files\7-Zip\" -File 7z.exe).FullName
 # Python
 $PyVersion = (Get-Command python.exe).FileVersionInfo.FileVersion
 $Python = (Get-Command python.exe).Path
@@ -44,6 +42,23 @@ if ( ! ( $PyVersion -ge 3 ) )
    Write-Output "Error: Need to require Python 3, Make sure you are using Python 3 or greater."
    Exit 1
 }
+
+Function Get-7zip
+{
+    $PathArr = "C:\Program Files\7-Zip\", "C:\Program Files (x86)\7-Zip\"
+    $P7ZipPath = @()
+    foreach ($path in $PathArr)
+    {
+        if ( Test-Path -Path $path )
+        {
+            $P7ZipPath = $P7ZipPath += $path
+        }
+    }
+    return $P7ZipPath
+}
+# 7Zip
+Get-7zip
+$P7Zip = (Get-ChildItem -Path $P7ZipPath -File 7z.exe).FullName
 
 Function Check-PS2
 {
@@ -58,24 +73,34 @@ Function Check-PS2
         } else {
             Write-Verbose -Message "Found GC Version"
         }
+    } else {
+        Write-Verbose -Message "Failed automatic check for PS2 version."
+        Write-Error -Message "Failed to find 7z.exe"
+        $readline = Read-Host -Prompt "Warning: 7-zip is required to unpack the PS2 version. Is $Rom a PS2 Copy? (y/n)"
+        switch -Exact ($readline)
+        {
+            "y" {"Error: 7z.exe was not found. exiting..."; Exit 1}
+            "n" {"Manually selected GC Version"; Break}
+            default { "please enter (y)es or (n)o" }
+        }
     }
 }
 
 # Check for PS2 Version
 Check-PS2
 
-Function Open-Iso 
+Function Open-Iso
 {
     param(
         [string]$iso,
         [string]$outDir,
-        [string]$filelist
+        [string]$fileList
     )
     if ( $Global:PS )
     {
         & $P7Zip x -o"$outDir" $iso
     } else {
-        & $Python .\tools\ngciso-tool.py -unpack $iso $outDir $filelist
+        & $Python .\tools\ngciso-tool.py -unpack $iso $outDir $fileList
     }
 }
 
@@ -124,7 +149,7 @@ DESCRIPTION
             Shows more detailed information of what the script is doing. Use this
             for debugging.
     -ZlibCompress
-            Compresses a supplied file into a zlib archive. Paths are relative to 
+            Compresses a supplied file into a zlib archive. Paths are relative to
             BaseDir\gladius_bec\data. Use only for PS2 Version.")
 }
 
@@ -176,7 +201,7 @@ if ($init)
 {
     EORR New-Item -ItemType Directory -Force -Path .\$BaseDir | Out-Null
     Write-Verbose -Message ("Extracting {0} to '{1}' directory..." -f $Rom, $BaseDir)
-    EORR Open-Iso $Rom $BaseDir BaseISO_FileList.txt
+    EORR Open-Iso $Rom $BaseDir\ BaseISO_FileList.txt
     Write-Verbose -Message ("Extracting {0} to '{1}\gladius_bec\'..." -f $DATABEC, $BaseDir)
     EORR Open-Bec $BaseDir\$DATABEC $BaseDir\gladius_bec\ gladius_bec_FileList.txt
 }

@@ -78,6 +78,15 @@ function check_ps2
         else
             write_verbose "Found GC Version."
         fi
+    else
+        write_verbose "Failed automatic check for PS2 version."
+        echo "Warning: p7zip is required to unpack the PS2 version. Is $BASEISO a PS2 copy?"
+        select yn in "Yes" "No"; do
+            case $yn in
+                Yes ) echo "Error: p7zip is not installed. exiting..."; exit 1;;
+                 No ) write_verbose "Manually selected GC Version."; break;;
+            esac
+        done
     fi
 }
 
@@ -178,7 +187,7 @@ shift $(($OPTIND - 1))
 # Check for PS2 version
 check_ps2 >&2
 
-if [[ ! -z DATAPATH ]]; then
+if [[ ! -z $DATAPATH ]]; then
     if [[ PS -eq 1 ]]; then
         create_zlib ./$BASEDIR/gladius_bec/data/$DATAPATH ./$BASEDIR/gladius_bec/zlib/data/$DATAPATH.zlib
         exit 0;
