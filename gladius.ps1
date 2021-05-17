@@ -10,12 +10,13 @@ The gladius.ps1 script unpacks and packs both GameCube and PlayStation 2 Gladius
 #>
 
 
-[CmdletBinding()]
+[CmdletBinding(DefaultParametersetName="gladius")]
 Param (
-    [string]$IsoName="gladius",
+    [parameter(ParameterSetName="GameCube")][switch]$gc,
+    [parameter(ParameterSetName="PlayStation")][switch]$ps,
     [string]$BaseDir="baseiso",
     [string]$Rom="baseiso.iso",
-    [string]$ZlibCompress,
+    [string]$IsoName="gladius",
     [switch]$init,
     [switch]$initaudio,
     [switch]$echo,
@@ -23,14 +24,9 @@ Param (
     [switch]$builddata,
     [switch]$buildiso,
     [switch]$clean,
+    [string]$ZlibCompress,
     [switch]$help
 )
-
-#PS2
-$Global:PS = $false
-
-$Global:DATABEC = "gladius.bec"
-$Global:AUDIOBEC = "audio.bec"
 
 # Python
 $PyVersion = (Get-Command python.exe).FileVersionInfo.FileVersion
@@ -57,37 +53,7 @@ Function Get-7zip
     return $P7ZipPath
 }
 # 7Zip
-Get-7zip
-$P7Zip = (Get-ChildItem -Path $P7ZipPath -File 7z.exe).FullName
-
-Function Check-PS2
-{
-    if ( ! ($P7Zip -eq $null) )
-    {
-        if ( & $P7Zip l $Rom | Select-String -Pattern "PLAYSTATION" )
-        {
-            $Global:PS = $true
-            $Global:DATABEC = "DATA.BEC"
-            $Global:AUDIOBEC = "AUDIO.BEC"
-            Write-Verbose -Message "Found PS2 Version"
-        } else {
-            Write-Verbose -Message "Found GC Version"
-        }
-    } else {
-        Write-Verbose -Message "Failed automatic check for PS2 version."
-        Write-Error -Message "Failed to find 7z.exe"
-        $readline = Read-Host -Prompt "Warning: 7-zip is required to unpack the PS2 version. Is $Rom a PS2 Copy? (y/n)"
-        switch -Exact ($readline)
-        {
-            "y" {"Error: 7z.exe was not found. exiting..."; Exit 1}
-            "n" {"Manually selected GC Version"; Break}
-            default { "please enter (y)es or (n)o" }
-        }
-    }
-}
-
-# Check for PS2 Version
-Check-PS2
+$P7Zip = (Get-ChildItem -Path (& Get-7zip) -File 7z.exe).FullName
 
 Function Open-Iso
 {
@@ -96,10 +62,10 @@ Function Open-Iso
         [string]$outDir,
         [string]$fileList
     )
-    if ( $Global:PS )
+    if ( $ps )
     {
         & $P7Zip x -o"$outDir" $iso
-    } else {
+    } elseif ( $gc ) {
         & $Python .\tools\ngciso-tool.py -unpack $iso $outDir $fileList
     }
 }
@@ -114,6 +80,19 @@ Function Close-Bec { & $Python .\tools\bec-tool.py -pack $args[0] $args[1] $args
 
 Function Close-Zlib { & $Python .\tools\zlib-tool.py -c $args[0] $args[1] }
 
+Function EORR
+{
+    if ($echo) {
+        Write-Host $args
+    } else {
+        ForEach ($arg in $args)
+        {
+            $cmd+="$arg "
+        }
+        Invoke-Expression $cmd
+    }
+}
+
 Function Print-Man
 {
     Write-Output(
@@ -126,7 +105,7 @@ DESCRIPTION
     -BaseDir
             Points to output directory for unpacking. Default is 'baseiso'.
     -buildaudio
-            Repackages the audio,bec file in the 'build' directory.
+            Repackages the audio.bec file in the 'build' directory.
     -builddata
             Repackages the gladius.bec file in  the 'build' directory.
     -buildiso
@@ -137,12 +116,16 @@ DESCRIPTION
             Outputs the commands to be run without executing them.
     -help
             Shows this information and exits.
+    -gc
+            Manaully denote GameCube version.
     -init
             Unpacks iso and gladius.bec to BaseDir directory.
     -initaudio
             Unpacks the audio.bec file to BaseDir directory.
     -IsoName
             custom name for iso. defaults to 'gladius'.
+    -ps
+            Manually denote PlayStaion version. REQUIRES 7-Zip!
     -Rom
             Points to Gladius ROM. Default is 'baseiso.iso'
     -Verbose
@@ -155,21 +138,8 @@ DESCRIPTION
 
 Function Print-Usage
 {
-    Write-Output "Usage: gladius.ps1 [-IsoName] [-BaseDir] [-Rom] [-init] [-initaudio] [-clean] [-buildaudio] [-builddata] [-buildiso] [-help] [-echo] [-ZlibCompress] [-Verbose],"
+    Write-Output "Usage: gladius.ps1 (-gc|-ps) [-IsoName] [-BaseDir] [-Rom] (-init | -initaudio | -clean | -buildaudio | -builddata | -buildiso) [-help] [-echo] [-ZlibCompress],"
     Write-Output "    where flags surrounded in '[]' are optional."
-}
-
-Function EORR
-{
-    if ($echo) {
-        Write-Host $args
-    } else {
-        ForEach ($arg in $args)
-        {
-            $cmd+="$arg "
-        }
-        Invoke-Expression $cmd
-    }
 }
 
 if ( $PSBoundParameters.Count -eq 0 )
@@ -184,7 +154,29 @@ if ($help)
     Exit 1
 }
 
-if ($ZlibCompress)
+# Require either "-gc" or "-ps"
+if (! ($gc.IsPresent -or $ps.IsPresent))
+{
+    Write-Error "Must denote game version."
+    Print-Usage
+    Exit 1
+}
+
+if ($gc)
+{
+   Write-Verbose -Message "Manually selected GameCube version."
+   $DATABEC = "gladius.bec"
+   $AUDIOBEC = "audio.bec"
+}
+
+if ($ps)
+{
+    Write-Verbose -Message "Manually selected PlayStation2 version."
+    $DATABEC = "DATA.BEC"
+    $AUDIOBEC = "AUDIO.BEC"
+}
+
+if ($ZlibCompress -and $ps.IsPresent)
 {
     Write-Verbose -Message ("Compressing {0} to zlib..." -f $ZlibCompress)
     Close-Zlib "$BaseDir\gladius_bec\data\$ZlibCompress" "$BaseDir\gladius_bec\zlib\data\$ZlibCompress.zlib"
@@ -244,7 +236,7 @@ if ($buildiso)
     Write-Verbose -Message ("Moving build\{0} to {1} directory..." -f $DATABEC, $BaseDir)
     EORR Copy-Item -Path .\build\$DATABEC -Destination $BaseDir\
     # Do not build iso if PS2
-    if ( ! ($PS) )
+    if ( ! ($ps) )
     {
         Write-Verbose -Message ("Packing {0}.iso..." -f $IsoName)
         EORR Close-Iso $BaseDir $BaseDir\fst.bin $BaseDir\BaseISO_FileList.txt ("{0}.iso" -f $IsoName)
