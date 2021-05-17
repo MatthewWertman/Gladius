@@ -24,7 +24,6 @@ Param (
     [switch]$builddata,
     [switch]$buildiso,
     [switch]$clean,
-    [string]$ZlibCompress,
     [switch]$help
 )
 
@@ -62,29 +61,48 @@ Function Open-Iso
         [string]$outDir,
         [string]$fileList
     )
-    if ( $ps )
+    if ($ps)
     {
-        & $P7Zip x -o"$outDir" $iso
-    } elseif ( $gc ) {
+        if ($P7Zip)
+        {
+            & $P7Zip x -o"$outDir" $iso -aos
+        }
+        else
+        {
+            Write-Error -Message "Error: 7-Zip doesn't seem to be installed and is required."
+            Exit 1
+        }
+    } elseif ($gc)
+    {
         & $Python .\tools\ngciso-tool.py -unpack $iso $outDir $fileList
     }
 }
 
 Function Open-Bec { & $Python .\tools\bec-tool.py -unpack $args[0] $args[1] $args[2] }
 
-Function Open-Zlib { & $Python .\tools\zlib-tool.py -x $args[0] $args[1] }
-
 Function Close-Iso { & $Python .\tools\ngciso-tool.py -pack $args[0] $args[1] $args[2] $args[3] }
 
 Function Close-Bec { & $Python .\tools\bec-tool.py -pack $args[0] $args[1] $args[2] }
 
-Function Close-Zlib { & $Python .\tools\zlib-tool.py -c $args[0] $args[1] }
+Function Build-Bec
+{
+    param(
+        [string]$becFile,
+        [string]$becPath
+    )
+    Write-Verbose -Message ("Repacking {0}..." -f $becFile)
+    EORR Close-Bec $BaseDir\$becPath\ .\build\$becFile $BaseDir\$becPath\$becPath_FileList.txt
+    Write-Verbose -Message ("Moving build\{0} to {1} directory..." -f $becFile, $BaseDir)
+    EORR Copy-Item -Path .\build\$becFile -Destination $BaseDir\
+}
 
 Function EORR
 {
-    if ($echo) {
+    if ($echo)
+    {
         Write-Host $args
-    } else {
+    } else
+    {
         ForEach ($arg in $args)
         {
             $cmd+="$arg "
@@ -117,7 +135,7 @@ DESCRIPTION
     -help
             Shows this information and exits.
     -gc
-            Manaully denote GameCube version.
+            Manaully denotes GameCube version.
     -init
             Unpacks iso and gladius.bec to BaseDir directory.
     -initaudio
@@ -125,20 +143,17 @@ DESCRIPTION
     -IsoName
             custom name for iso. defaults to 'gladius'.
     -ps
-            Manually denote PlayStaion version. REQUIRES 7-Zip!
+            Manually denotes PlayStaion version. REQUIRES 7-Zip!
     -Rom
             Points to Gladius ROM. Default is 'baseiso.iso'
     -Verbose
             Shows more detailed information of what the script is doing. Use this
-            for debugging.
-    -ZlibCompress
-            Compresses a supplied file into a zlib archive. Paths are relative to
-            BaseDir\gladius_bec\data. Use only for PS2 Version.")
+            for debugging.")
 }
 
 Function Print-Usage
 {
-    Write-Output "Usage: gladius.ps1 (-gc|-ps) [-IsoName] [-BaseDir] [-Rom] (-init | -initaudio | -clean | -buildaudio | -builddata | -buildiso) [-help] [-echo] [-ZlibCompress],"
+    Write-Output "Usage: gladius.ps1 (-gc|-ps) [-IsoName] [-BaseDir] [-Rom] (-init | -initaudio | -clean | -buildaudio | -builddata | -buildiso) [-help] [-echo],"
     Write-Output "    where flags surrounded in '[]' are optional."
 }
 
@@ -154,8 +169,15 @@ if ($help)
     Exit 1
 }
 
+if ($clean)
+{
+   Write-Verbose -Message "Removing build contents and modified isos..."
+   EORR Remove-Item .\build\* -Recurse -ErrorAction SilentlyContinue
+   EORR Get-Item *.iso -Exclude $Rom | Remove-Item -Recurse -Force
+}
+
 # Require either "-gc" or "-ps"
-if (! ($gc.IsPresent -or $ps.IsPresent))
+if (!($gc.IsPresent -or $ps.IsPresent))
 {
     Write-Error "Must denote game version."
     Print-Usage
@@ -176,17 +198,12 @@ if ($ps)
     $AUDIOBEC = "AUDIO.BEC"
 }
 
-if ($ZlibCompress -and $ps.IsPresent)
+# Require at least one action
+if (!($init.IsPresent -or $initaudio.IsPresent -or $clean.IsPresent -or $buildaudio.IsPresent -or $builddata.IsPresent -or $buildiso.IsPresent))
 {
-    Write-Verbose -Message ("Compressing {0} to zlib..." -f $ZlibCompress)
-    Close-Zlib "$BaseDir\gladius_bec\data\$ZlibCompress" "$BaseDir\gladius_bec\zlib\data\$ZlibCompress.zlib"
-}
-
-if ($clean)
-{
-   Write-Verbose -Message "Removing build contents and modified isos..."
-   EORR Remove-Item .\build\* -Recurse -Force
-   EORR Get-Item *.iso -Exclude $Rom | Remove-Item -Recurse -Force
+    Write-Error "Must supply at least one action."
+    Print-Usage
+    Exit 1
 }
 
 if ($init)
@@ -200,6 +217,12 @@ if ($init)
 
 if ($initaudio)
 {
+    if (!($init) -and !(Test-Path -Path $BaseDir))
+    {
+        EORR New-Item -ItemType Directory -Force -Path .\$BaseDir | Out-Null
+        Write-Verbose -Message ("Extracting {0} to '{1}' directory..." -f $Rom, $BaseDir)
+        EORR Open-Iso $Rom $BaseDir\ BaseISO_FileList.txt
+    }
     Write-Verbose -Message ("Extracting {0} to '{1}\audio_bec\'..." -f $AUDIOBEC, $BaseDir)
     EORR Open-Bec $BaseDir\$AUDIOBEC $BaseDir\audio_bec\ audio_bec_FileList.txt
 }
@@ -207,15 +230,13 @@ if ($initaudio)
 if ($buildaudio)
 {
     EORR New-Item -ItemType Directory -Force -Path .\build | Out-Null
-    Write-Verbose -Message ("Repacking {0}..." -f $AUDIOBEC)
-    EORR Close-Bec $BaseDir\audio_bec\ .\build\$AUDIOBEC $BaseDir\audio_bec\audio_bec_FileList.txt
+    EORR Build-Bec $AUDIOBEC audio_bec
 }
 
 if ($builddata)
 {
     EORR New-Item -ItemType Directory -Force -Path .\build | Out-Null
-    Write-Verbose -Message ("Repacking {0}..." -f $DATABEC)
-    EORR Close-Bec $BaseDir\gladius_bec\ .\build\$DATABEC $BaseDir\gladius_bec\gladius_bec_FileList.txt
+    EORR Build-Bec $DATABEC gladius_bec
 }
 
 if ($buildiso)
@@ -223,20 +244,14 @@ if ($buildiso)
     EORR New-Item -ItemType Directory -Force -Path .\build | Out-Null
     if (!($builddata))
     {
-        Write-Verbose -Message ("Repacking {0}..." -f $DATABEC)
-        EORR Close-Bec $BaseDir\gladius_bec\ .\build\$DATABEC $BaseDir\gladius_bec\gladius_bec_FileList.txt
+        Build-Bec $DATABEC gladius_bec
     }
     if (!($buildaudio) -and (Test-Path -Path $BaseDir\audio_bec))
     {
-        Write-Verbose -Message ("Repacking {0}..." -f $AUDIOBEC)
-        EORR Close-Bec $BaseDir\audio_bec\ .\build\$AUDIOBEC $BaseDir\audio_bec\audio_bec_FileList.txt
-        Write-Verbose -Message ("Moving build\{0} to {1} directory..." -f $AUDIOBEC, $BaseDir)
-        EORR Copy-Item -Path .\build\$AUDIOBEC -Destination $BaseDir\
+        Build-Bec $AUDIOBEC audio_bec
     }
-    Write-Verbose -Message ("Moving build\{0} to {1} directory..." -f $DATABEC, $BaseDir)
-    EORR Copy-Item -Path .\build\$DATABEC -Destination $BaseDir\
     # Do not build iso if PS2
-    if ( ! ($ps) )
+    if (!($ps))
     {
         Write-Verbose -Message ("Packing {0}.iso..." -f $IsoName)
         EORR Close-Iso $BaseDir $BaseDir\fst.bin $BaseDir\BaseISO_FileList.txt ("{0}.iso" -f $IsoName)

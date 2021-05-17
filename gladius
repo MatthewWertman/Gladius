@@ -1,10 +1,14 @@
 #!/bin/bash
-# gladius -- build and extract script for Gladius ROMs.
+# gladius -- build and extract script for Gladius Modding.
 
 MKDIR_P="$(which mkdir) -p"
 RM_F="$(which rm) -f"
-PYTHON="$(which python3)"
 P7ZIP="$(which 7z)"
+PYTHON="$(which python3)"
+if [[ -z PYTHON ]]; then
+    echo "$0: ERROR (python3 doesn't seem to be installed and is required.)" >&2
+    exit 1
+fi
 
 #Flags
 AUDIO=0
@@ -16,56 +20,62 @@ CLEAN=0
 ECHO=0
 GC=0
 PS=0
-DATAPATH=""
 VERBOSE=""
 
+# Default parameters
 ISONAME="gladius"
 BASEDIR="baseiso"
 BASEISO="baseiso.iso"
 DATABEC="gladius.bec"
 AUDIOBEC="audio.bec"
 
-# @params
+#@params
     # $1 - Path to base iso
     # $2 - Directory for output
     # $3 - Output file list
 function unpack_iso()
 {
     if [[ PS -eq 1 ]]; then
-        $P7ZIP x -o$2 $1
+        if [[ ! -z P7ZIP ]]; then
+            $P7ZIP x -o$2 $1 -aos
+        else
+            echo "$0: ERROR (p7zip doesn't seem to be installed and is required.)" >&2
+            exit 1
+        fi
     else
         $PYTHON tools/ngciso-tool.py -unpack $1 $2 $3;
     fi
 }
 
-# @params
-    # $1 - input bec file
+#@params
+    # $1 - Input BEC file
     # $2 - Directory for output
     # $3 - Output file list
 function unpack_bec() { $PYTHON tools/bec-tool.py -unpack $1 $2 $3; }
 
-# @params
-    # $1 - inputFile
-    # $2 - outputFile
-function unpack_zlib() { $PYTHON tools/zlib-tool.py -x $1 $2; }
-
-# @params
+#@params
     # $1 - Directory for input
-    # $2 - fst file
-    # $3 - fst map (iso file list)
-    # $4 - output iso file
+    # $2 - Fst file
+    # $3 - Fst map (iso file list)
+    # $4 - Output iso file
 function create_iso() { $PYTHON tools/ngciso-tool.py -pack $1 $2 $3 $4; }
 
-# @params
+#@params
     # $1 - Directory for input
     # $2 - Directory for output
-    # $3 - file list containing all necessary files to pack
+    # $3 - File list containing all necessary files to pack
 function create_bec() { $PYTHON tools/bec-tool.py -pack $1 $2 $3; }
 
-# @params
-    # $1 - inputFile
-    # $2 - outputFile
-function create_zlib() { $PYTHON tools/zlib-tool.py -c $1 $2; }
+#@params
+    # $1 - BEC file
+    # $2 - BEC directory
+function build_bec()
+{
+    write_verbose "Repacking $1..."
+    $EORR create_bec ./$BASEDIR/$2/ ./build/$1 ./$BASEDIR/$2/$2_FileList.txt
+    write_verbose "Moving $1 to $BASEDIR"
+    $EORR cp -v ./build/$1 ./$BASEDIR
+}
 
 function check_version
 {
@@ -82,8 +92,8 @@ function check_version
         echo "Select your game verison."
         select yn in "PlayStation2" "GameCube"; do
             case $yn in
-                PlayStation2 ) write_verbose "Manually selected PlayStation version."; PS=1; DATABEC="DATA.BEC"; AUDIOBEC="AUDIO.BEC" ;;
-                GameCube ) write_verbose "Manually selected GameCube version."; GC=1;;
+                PlayStation2 ) write_verbose "Manually selected PlayStation version."; PS=1; DATABEC="DATA.BEC"; AUDIOBEC="AUDIO.BEC"; break ;;
+                GameCube ) write_verbose "Manually selected GameCube version."; GC=1; break ;;
             esac
         done
     fi
@@ -110,12 +120,16 @@ DESCRIPTION
             outputs the commands to be run without exucuting them.
     -g, --build-iso
             Repackages the gladius ROM in the project directory.
+    --gc
+            Manually denotes GameCube version of Gladius.
     -h, --help
             shows this information.
     -i, --init
             Unpacks iso and gladius.bec to 'baseiso' directory.
     -n, --name
             custom name for iso. defaults to 'gladius'.
+    --ps
+            Manually denotes PlayStation2 version of Gladius. REQUIRES P7zip!
     -r, --rom
             point to specified gladius ROM to extract. Deafult is 'baseiso.iso'.
     -s, --init-audio
@@ -123,17 +137,17 @@ DESCRIPTION
     -v, --verbose
             shows more detailed information of what the script is doing. Use this
             for debugging.
-    -z, --compress
-            Compress a file into a zlib archive. Filepaths are relative to '$BASEDIR/gladius_bec/data'. ONLY FOR PS2.
 EOF
 }
 
 function print_usage
 {
-    echo "Usage: $(basename $0) [-gc|-ps] [--build-audio|-a] [--build-data|-b] [--build-iso|-g] [--clean|-c] [--compress|-z] [--echo|-e] [--help|-h] [--init|-i] [--name|-n] [--rom|-r] [--init-audio|-s] [--verbose|-v]," >&2
+    echo "Usage: $(basename $0) [--gc|--ps] [--name|-n] [--rom|-r] [--dir|-d] (--build-audio|-a, --build-data|-b, --build-iso|-g, --clean|-c, --init|-i, --init-audio|-s) [--echo|-e] [--help|-h] [--verbose|-v]," >&2
     echo "    where flags surrounded in '[]' are optional." >&2
 }
 
+#@params
+    # $1 - Verbose message
 function write_verbose ()
 {
     if [[ "$VERBOSE" == "-v" ]]; then
@@ -148,11 +162,10 @@ for arg in "$@"; do
       "--build-data") set -- "$@" "-b"      ;;
        "--build-iso") set -- "$@" "-g"      ;;
            "--clean") set -- "$@" "-c"      ;;
-        "--compress") set -- "$@" "-z"      ;;
              "--dir") set -- "$@" "-d"      ;;
             "--echo") set -- "$@" "-e"      ;;
               "--gc") if [[ PS -eq 1 ]]; then
-                          echo "$0: Error: --gc amd --ps are mutually exclusive." >&2
+                          echo "$0: ERROR (--gc and --ps are mutually exclusive.)" >&2
                           exit 1
                       fi
                       GC=1 ;;
@@ -161,7 +174,7 @@ for arg in "$@"; do
       "--init-audio") set -- "$@" "-s"      ;;
             "--name") set -- "$@" "-n"      ;;
               "--ps") if [[ GC -eq 1 ]]; then
-                          echo "$0: Error: --gc and --ps are mutually exclusive." >&2
+                          echo "$0: ERROR (--gc and --ps are mutually exclusive.)" >&2
                           exit 1
                       fi
                       PS=1; DATABEC="DATA.BEC"; AUDIOBEC="AUDIO.BEC" ;;
@@ -172,7 +185,7 @@ for arg in "$@"; do
 done
 
 OPTIND=1
-while getopts ":d:n:r:z:abceghisv" opt; do
+while getopts ":d:n:r:abceghisv" opt; do
     case "$opt" in
         "a") BUILDAUDIO=1 ;;
         "b") BUILDDATA=1 ;;
@@ -186,22 +199,22 @@ while getopts ":d:n:r:z:abceghisv" opt; do
         "r") BASEISO="$OPTARG" ;;
         "s") AUDIO=1 ;;
         "v") VERBOSE="-v" ;;
-        "z") DATAPATH="$OPTARG" ;;
-        \? ) echo "Error: Invalid parameter flag." >&2; print_usage >&2; exit 1 ;;
+        \? ) echo "$0: ERROR (Invalid parameter flag.)" >&2; print_usage >&2; exit 1 ;;
     esac
 done
 if [[ $OPTIND -eq 1 ]]; then print_usage >&2; exit 1; fi
 shift $(($OPTIND - 1))
 
+if [[ ! ( INIT -eq 1 || AUDIO -eq 1 || BUILDAUDIO -eq 1 || BUILDDATA -eq 1 || BUILDISO -eq 1 || CLEAN -eq 1 ) ]]; then
+    echo "$0: ERROR (Must supply at least one action.)" >&2
+    print_usage
+    exit 1
+fi
+
 if [[ ! GC -eq 1 ]] && [[ ! PS -eq 1 ]]; then
     # Check for PS2 version
     write_verbose "Automatically checking game version..."
     check_version >&2
-fi
-
-if [[ ! -z $DATAPATH ]] && [[ PS -eq 1 ]]; then
-    create_zlib ./$BASEDIR/gladius_bec/data/$DATAPATH ./$BASEDIR/gladius_bec/zlib/data/$DATAPATH.zlib
-    exit 0;
 fi
 
 if [[ ECHO -eq 1 ]]; then
@@ -225,33 +238,34 @@ if [[ INIT -eq 1 ]]; then
 fi
 
 if [[ AUDIO -eq 1 ]]; then
+    if [[ INIT -eq 0 && -d ./$BASEDIR ]]; then
+        $EORR $MKDIR_P $BASEDIR
+        write_verbose "Extracting $BASEISO to '$BASEDIR' directory..."
+        $EORR unpack_iso ./$BASEISO ./$BASEDIR/ BaseISO_FileList.txt
+    fi
     write_verbose "Extracting audio.bec to '$BASEDIR' directory..."
     $EORR unpack_bec ./$BASEDIR/$AUDIOBEC ./$BASEDIR/audio_bec/ audio_bec_FileList.txt
 fi
 
 if [[ BUILDAUDIO -eq 1 ]]; then
-    write_verbose "Repacking audio.bec..."
     $EORR $MKDIR_P build/
-    $EORR create_bec ./$BASEDIR/audio_bec/ ./build/$AUDIOBEC ./$BASEDIR/audio_bec/audio_bec_FileList.txt
+    $EORR build_bec $AUDIOBEC audio_bec
 fi
 
 if [[ BUILDDATA -eq 1 ]]; then
-    write_verbose "Repacking gladius.bec..."
     $EORR $MKDIR_P build/
-    $EORR create_bec ./$BASEDIR/gladius_bec/ ./build/$DATABEC ./$BASEDIR/gladius_bec/gladius_bec_FileList.txt
+    $EORR build_bec $DATABEC gladius_bec
 fi
 
 if [[ BUILDISO -eq 1 ]]; then
     write_verbose "Packing $ISONAME iso..."
     $EORR $MKDIR_P build/
     if [[ BUILDDATA -eq 0 ]]; then
-        $EORR create_bec ./$BASEDIR/gladius_bec/ ./build/$DATABEC ./$BASEDIR/gladius_bec/gladius_bec_FileList.txt
+        build_bec $AUDIOBEC audio_bec
     fi
     if [[ BUILDAUDIO -eq 0 && -d ./$BASEDIR/audio_bec ]]; then
-        $EORR create_bec ./$BASEDIR/audio_bec/ ./build/$AUDIOBEC ./$BASEDIR/audio_bec/audio_bec_FileList.txt
-        $EORR cp -v ./build/$AUDIOBEC ./$BASEDIR
+        build_bec $DATABEC gladius_bec
     fi
-    $EORR cp -v ./build/$DATABEC ./$BASEDIR
     if [[ PS -eq 0 ]]; then
         $EORR create_iso ./$BASEDIR ./$BASEDIR/fst.bin ./$BASEDIR/BaseISO_FileList.txt "$ISONAME.iso"
         $EORR md5sum "$ISONAME.iso"
