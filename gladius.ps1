@@ -24,6 +24,7 @@ Param (
     [switch]$builddata,
     [switch]$buildiso,
     [switch]$clean,
+    [switch]$cleanall,
     [switch]$help
 )
 
@@ -72,7 +73,8 @@ Function Open-Iso
             Write-Error -Message "Error: 7-Zip doesn't seem to be installed and is required."
             Exit 1
         }
-    } elseif ($gc)
+    }
+    elseif ($gc)
     {
         & $Python .\tools\ngciso-tool.py -unpack $iso $outDir $fileList
     }
@@ -101,7 +103,8 @@ Function EORR
     if ($echo)
     {
         Write-Host $args
-    } else
+    }
+    else
     {
         ForEach ($arg in $args)
         {
@@ -130,6 +133,8 @@ DESCRIPTION
             Repackages the gladius ROM in the project directory.
     -clean
             Removes build directory contents and any previously built isos.
+    -cleanall
+            Removes BaseDir directory, build directory, and any modified isos. Use with caution.
     -echo
             Outputs the commands to be run without executing them.
     -help
@@ -153,7 +158,7 @@ DESCRIPTION
 
 Function Print-Usage
 {
-    Write-Output "Usage: gladius.ps1 (-gc|-ps) [-IsoName] [-BaseDir] [-Rom] (-init | -initaudio | -clean | -buildaudio | -builddata | -buildiso) [-help] [-echo],"
+    Write-Output "Usage: gladius.ps1 (-gc|-ps) [-IsoName] [-BaseDir] [-Rom] (-init | -initaudio | -clean | -cleanall | -buildaudio | -builddata | -buildiso) [-help] [-echo],"
     Write-Output "    where flags surrounded in '[]' are optional."
 }
 
@@ -173,7 +178,34 @@ if ($clean)
 {
    Write-Verbose -Message "Removing build contents and modified isos..."
    EORR Remove-Item .\build\* -Recurse -ErrorAction SilentlyContinue
-   EORR Get-Item *.iso -Exclude $Rom | Remove-Item -Recurse -Force
+   EORR Get-Item *.iso -Exclude $Rom | Remove-Item
+}
+
+if ($cleanall)
+{
+    if ($echo)
+    {
+        Write-Host "Remove-Item .\$BaseDir -Recurse -ErrorAction SilentlyContinue"
+        Write-Host "Remove-Item .\build -Recurse -ErrorAction SilentlyContinue"
+        Write-Host "Get-Item *.iso -Exclude $Rom | Remove-Item"
+    }
+    else
+    {
+        $readline = Read-Host -Prompt "WARNING: This will remove the $BaseDir directory, any modified isos, and build contents. Do you want to continue? (y/n)"
+        switch -Exact ($readline)
+        {
+            "y" {Break}
+            "n" {Exit 1}
+            Default { "Please enter (y)es or (n)o."}
+        }
+        Write-Verbose -Message "Removing $BASEDIR..."
+        Remove-Item .\$BaseDir -Recurse -ErrorAction SilentlyContinue
+        Write-Verbose -Message "Removing build directory..."
+        Remove-Item .\build -Recurse -ErrorAction SilentlyContinue
+        Write-Verbose -Message "Removing any modified isos (not $BASEISO)..."
+        Get-Item *.iso -Exclude $Rom | Remove-Item
+
+    }
 }
 
 # Require either "-gc" or "-ps"
@@ -199,7 +231,7 @@ if ($ps)
 }
 
 # Require at least one action
-if (!($init.IsPresent -or $initaudio.IsPresent -or $clean.IsPresent -or $buildaudio.IsPresent -or $builddata.IsPresent -or $buildiso.IsPresent))
+if (!($init.IsPresent -or $initaudio.IsPresent -or $clean.IsPresent -or $cleanall.IsPresent -or $buildaudio.IsPresent -or $builddata.IsPresent -or $buildiso.IsPresent))
 {
     Write-Error "Must supply at least one action."
     Print-Usage

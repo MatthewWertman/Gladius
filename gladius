@@ -17,6 +17,7 @@ BUILDAUDIO=0
 BUILDDATA=0
 BUILDISO=0
 CLEAN=0
+CLEANALL=0
 ECHO=0
 GC=0
 PS=0
@@ -114,6 +115,8 @@ DESCRIPTION
             Repackages the gladius.bec file in  the 'build' directory.
     -c, --clean
             Removes build directory contents and any previously built isos.
+    --clean-all
+            Removes output directory, build directory, and any modified isos. Use with caution.
     -d, --dir
             point to specified output directory. Default is 'baseiso'.
     -e, --echo
@@ -125,7 +128,7 @@ DESCRIPTION
     -h, --help
             shows this information.
     -i, --init
-            Unpacks iso and gladius.bec to 'baseiso' directory.
+            Unpacks iso and gladius.bec to output directory.
     -n, --name
             custom name for iso. defaults to 'gladius'.
     --ps
@@ -133,7 +136,7 @@ DESCRIPTION
     -r, --rom
             point to specified gladius ROM to extract. Deafult is 'baseiso.iso'.
     -s, --init-audio
-            Unpacks the audio.bec to the 'baseiso' directory.
+            Unpacks the audio.bec to the output directory.
     -v, --verbose
             shows more detailed information of what the script is doing. Use this
             for debugging.
@@ -142,7 +145,7 @@ EOF
 
 function print_usage
 {
-    echo "Usage: $(basename $0) [--gc|--ps] [--name|-n] [--rom|-r] [--dir|-d] (--build-audio|-a, --build-data|-b, --build-iso|-g, --clean|-c, --init|-i, --init-audio|-s) [--echo|-e] [--help|-h] [--verbose|-v]," >&2
+    echo "Usage: $(basename $0) [--gc|--ps] [--name|-n] [--rom|-r] [--dir|-d] (--build-audio|-a, --build-data|-b, --build-iso|-g, --clean|-c, --clean-all, --init|-i, --init-audio|-s) [--echo|-e] [--help|-h] [--verbose|-v]," >&2
     echo "    where flags surrounded in '[]' are optional." >&2
 }
 
@@ -162,6 +165,7 @@ for arg in "$@"; do
       "--build-data") set -- "$@" "-b"      ;;
        "--build-iso") set -- "$@" "-g"      ;;
            "--clean") set -- "$@" "-c"      ;;
+       "--clean-all") CLEANALL=1            ;;
              "--dir") set -- "$@" "-d"      ;;
             "--echo") set -- "$@" "-e"      ;;
               "--gc") if [[ PS -eq 1 ]]; then
@@ -205,7 +209,7 @@ done
 if [[ $OPTIND -eq 1 ]]; then print_usage >&2; exit 1; fi
 shift $(($OPTIND - 1))
 
-if [[ ! ( INIT -eq 1 || AUDIO -eq 1 || BUILDAUDIO -eq 1 || BUILDDATA -eq 1 || BUILDISO -eq 1 || CLEAN -eq 1 ) ]]; then
+if [[ ! ( INIT -eq 1 || AUDIO -eq 1 || BUILDAUDIO -eq 1 || BUILDDATA -eq 1 || BUILDISO -eq 1 || CLEAN -eq 1 || CLEANALL -eq 1 ) ]]; then
     echo "$0: ERROR (Must supply at least one action.)" >&2
     print_usage
     exit 1
@@ -228,6 +232,26 @@ if [[ CLEAN -eq 1 ]]; then
     write_verbose "Removing build contents and modified isos..."
     $EORR $RM_F build/*
     $EORR find *.iso ! -name $BASEISO -type f -exec rm -f {} +
+fi
+
+if [[ CLEANALL -eq 1 ]]; then
+    if [[ ECHO -eq 1 ]]; then
+        echo "$RM_F -r $BASEDIR"
+        echo "$RM_F -r ./build"
+        echo "find *.iso ! -name $BASEISO -type f -exec rm -f {} +"
+    else
+        read -p "WARNING: This will remove $BASEDIR, any modified isos, and build contents. Do you want to continue? (y/n)" -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+        write_verbose "Removing $BASEDIR..."
+        $RM_F -r $BASEDIR
+        write_verbose "Removing build directory..."
+        $RM_F -r ./build
+        write_verbose "Removing any modified isos (not $BASEISO)..."
+        find *.iso ! -name $BASEISO -type f -exec rm -f {} +
+    fi
 fi
 
 if [[ INIT -eq 1 ]]; then
