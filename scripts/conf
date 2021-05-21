@@ -1,0 +1,169 @@
+#!/bin/bash
+# conf -- edit the GLSE64.ini file quickly and easily
+# https://wiki.dolphin-emu.org/index.php?title=GameINI
+
+ECHO_E="$(which echo) -en"
+GLSE64="$(pwd)/GLSE64.ini"
+HEADERS=("[Core]" "[Video_Settings]" "[Video_Enhancements]" "[Video_Hacks]" "[Video_Hardware]" "[Video_Stereoscopy]" "[DSP]")
+DEF_CONFIG="[Core]\n# Disable Dual Core\nCPUThread = False"
+CONFIG_STR=""
+DEFAULT=0
+OVERRIDE=0
+SHOW=0
+
+OPTIND=1
+while getopts ":o:Rs" opt
+do
+    case "$opt" in
+        "o") OVERRIDE=1;;
+        "R") DEFAULT=1;;
+        "s") SHOW=1;;
+        \? ) echo "$0: ERROR: Invalid option: -$OPTARG." >&2; exit 1 ;;
+         : ) echo "$0: ERROR: Invalid option: -$OPTARG requires an argument." >&2; exit 1 ;;
+    esac
+done
+shift $(( $OPTIND - 1 ))
+
+if [[ ! -f $GLSE64 ]]; then
+    touch GLSE64.ini
+    $ECHO_E "$DEF_CONFIG" > $GLSE64
+fi
+
+if [[ SHOW -eq 1 ]]; then
+    cat $GLSE64
+    exit 0
+fi
+
+if [[ DEFAULT -eq 1 ]]; then
+    $ECHO_E "$DEF_CONFIG" > $GLSE64
+fi
+
+if [[ OVERRIDE -eq 1 ]]; then
+    $ECHO_E "$@" > $GLSE64
+fi
+
+for arg in "$@"; do
+    case "$arg" in
+        # Core
+        "disableProgressiveScan" ) CONFIG_STR+="${HEADERS[0]}\\nProgressiveScan = False\\n";;
+        "enableProgressiveScan" ) CONFIG_STR+="${HEADERS[0]}\\nProgressiveScan = True\\n";;
+        "disableOverclock" ) CONFIG_STR+="${HEADERS[0]}\\nOverclockEnable = False\\n";;
+        "enableOverclock" ) CONFIG_STR+="${HEADERS[0]}\\nOverclockEnable = True\\n";;
+        "disableDSPThread" ) CONFIG_STR+="${HEADERS[0]}\\nDSPThread = False\\n";;
+        "disableDualCore" ) CONFIG_STR+="${HEADERS[0]}\\nCPUThread = False\\n";;
+        "disableFDS" ) CONFIG_STR+="${HEADERS[0]}\\nFastDiscSpeed = False\\n";;
+        "enableDSPThread" ) CONFIG_STR+="${HEADERS[0]}\\nDSPThread = True\\n";;
+        "enableDualCore" ) CONFIG_STR+="${HEADERS[0]}\\nCPUThread = True\\n";;
+        "enableFDS" ) CONFIG_STR+="${HEADERS[0]}\\nFastDiscSpeed = True\\n";;
+        "disableGPUSync" ) CONFIG_STR+="${HEADERS[0]}\\nSyncGPU = False\\n";;
+        "enableGPUSync" ) CONFIG_STR+="${HEADERS[0]}\\nSyncGPU = True\\n";;
+        "disableFPRF" ) CONFIG_STR+="${HEADERS[0]}\\nFPRF = False\\n";;
+        "disableDCBZ" ) CONFIG_STR+="${HEADERS[0]}\\nDCBZ = False\\n";;
+        "enableDCBZ" ) CONFIG_STR+="${HEADERS[0]}\\nDCBZ = True\\n";;
+        "enableFPRF" ) CONFIG_STR+="${HEADERS[0]}\\nFPRF = True\\n";;
+        "disableMMU" ) CONFIG_STR+="${HEADERS[0]}\\nMMU = False\\n";;
+        "enableMMU" ) CONFIG_STR+="${HEADERS[0]}\\nMMU = True\\n";;
+        "GFXBackend=D3D" ) CONFIG_STR+="${HEADERS[0]}\\nGFXBackend = D3D\\n";;
+        "GFXBackend=D3D12" ) CONFIG_STR+="${HEADERS[0]}\\nGFXBackend = D3D12\\n";;
+        "GFXBackend=OGL" ) CONFIG_STR+="${HEADERS[0]}\\nGFXBackend = OGL\\n";;
+        "GFXBackend=Vulkan" ) CONFIG_STR+="${HEADERS[0]}\\nGFXBackend = Vulkan\\n";;
+        "GFXBackend=SoftwareRenderer" ) CONFIG_STR+="${HEADERS[0]}\\nGFXBackend = Software Renderer\\n";;
+        "GFXBackend=Null" ) CONFIG_STR+="${HEADERS[0]}\\nGFXBackend = Null\\n";;
+        "CPUCore=0" ) CONFIG_STR+="${HEADERS[0]}\\nCPUCore = 0\\n";;
+        "CPUCore=1" ) CONFIG_STR+="${HEADERS[0]}\\nCPUCore = 1\\n";;
+        "CPUCore=2" ) CONFIG_STR+="${HEADERS[0]}\\nCPUCore = 2\\n";;
+        "CPUCore=4" ) CONFIG_STR+="${HEADERS[0]}\\nCPUCore = 4\\n";;
+        "CPUCore=5" ) CONFIG_STR+="${HEADERS[0]}\\nCPUCore = 5\\n";;
+        "GPUDeterminismMode=fake-completion" ) CONFIG_STR+="${HEADERS[0]}\\nGPUDeterminismMode = fake-completion\\n";;
+        "GPUDeterminismMode=auto" ) CONFIG_STR+="${HEADERS[0]}\\nGPUDeterminismMode = auto\\n";;
+        "GPUDeterminismMode=none" ) CONFIG_STR+="${HEADERS[0]}\\nGPUDeterminismMode = none\\n";;
+        # Graphics.Settings
+        "disableWaitForShadersBeforeStarting" ) CONFIG_STR+="${HEADERS[1]}\\nWaitForShadersBeforeStarting = False\\n";;
+        "enableWaitForShadersBeforeStarting" ) CONFIG_STR+="${HEADERS[1]}\\nWaitForShadersBeforeStarting = True\\n";;
+        "disablePixelLighting" ) CONFIG_STR+="${HEADERS[1]}\\nEnablePixelLighting = False\\n";;
+        "enablePixelLighting" ) CONFIG_STR+="${HEADERS[1]}\\nEnablePixelLighting = True\\n";;
+        "disableWideScreenHack" ) CONFIG_STR+="${HEADERS[1]}\\nwideScreenHack = False\\n";;
+        "enableWideScreenHack" ) CONFIG_STR+="${HEADERS[1]}\\nwideScreenHack = True\\n";;
+        "disableFastDepthCalc" ) CONFIG_STR+="${HEADERS[1]}\\nFastDepthCalc = False\\n";;
+        "disableHiresTextures" ) CONFIG_STR+="${HEADERS[1]}\\nHiresTextures = False\\n";;
+        "enableFastDepthCalc" ) CONFIG_STR+="${HEADERS[1]}\\nFastDepthCalc = True\\n";;
+        "enableHiresTextures" ) CONFIG_STR+="${HEADERS[1]}\\nHiresTextures = True\\n";;
+        "disableRealXFB" ) CONFIG_STR+="${HEADERS[1]}\\nUseRealXFB = False\\n";;
+        "enableRealXFB" ) CONFIG_STR+="${HEADERS[1]}\\nUseRealXFB = True\\n";;
+        "disableFog" ) CONFIG_STR+="${HEADERS[1]}\\nDisableFog = False\\n";;
+        "enableFog" ) CONFIG_STR+="${HEADERS[1]}\\nDisableFog = True\\n";;
+        "disableXFB" ) CONFIG_STR+="${HEADERS[1]}\\nUseXFB = False\\n";;
+        "disableSSAA" ) CONFIG_STR+="${HEADERS[1]}\\nSSAA = False\\n";;
+        "enableXFB" ) CONFIG_STR+="${HEADERS[1]}\\nUseXFB = True\\n";;
+        "MSAA=0" ) CONFIG_STR+="${HEADERS[1]}\\nMSAA = 0\\n";;
+        "MSAA=2" ) CONFIG_STR+="${HEADERS[1]}\\nMSAA = 2\\n";;
+        "MSAA=4" ) CONFIG_STR+="${HEADERS[1]}\\nMSAA = 4\\n";;
+        "MSAA=8" ) CONFIG_STR+="${HEADERS[1]}\\nMSAA = 8\\n";;
+        "enableSSAA" ) CONFIG_STR+="${HEADERS[1]}\\nSSAA = True\\n";;
+        "ShaderCompilationMode=0" ) CONFIG_STR+="${HEADERS[1]}\\nShaderCompilationMode = 0\\n";;
+        "ShaderCompilationMode=1" ) CONFIG_STR+="${HEADERS[1]}\\nShaderCompilationMode = 1\\n";;
+        "ShaderCompilationMode=2" ) CONFIG_STR+="${HEADERS[1]}\\nShaderCompilationMode = 2\\n";;
+        "ShaderCompilationMode=3" ) CONFIG_STR+="${HEADERS[1]}\\nShaderCompilationMode = 3\\n";;
+        "AspectRatio=0" ) CONFIG_STR+="${HEADERS[1]}\\nAspectRatio = 0\\n";;
+        "AspectRatio=1" ) CONFIG_STR+="${HEADERS[1]}\\nAspectRatio = 1\\n";;
+        "AspectRatio=2" ) CONFIG_STR+="${HEADERS[1]}\\nAspectRatio = 2\\n";;
+        "AspectRatio=3" ) CONFIG_STR+="${HEADERS[1]}\\nAspectRatio = 3\\n";;
+        # Graphics.Enhancements
+        "disableArbitraryMipmapDetection" ) CONFIG_STR+="${HEADERS[2]}\\nArbitraryMipmapDetection = False\\n";;
+        "enableArbitraryMipmapDetection" ) CONFIG_STR+="${HEADERS[2]}\\nArbitraryMipmapDetection = True\\n";;
+        "disableForceFiltering" ) CONFIG_STR+="${HEADERS[2]}\\nForceFiltering = False\\n";;
+        "disableForceTrueColor" ) CONFIG_STR+="${HEADERS[2]}\\nForceTrueColor = False\\n";;
+        "disableCopyFilter" ) CONFIG_STR+="${HEADERS[2]}\\nDisableCopyFilter = False\\n";;
+        "enableForceFiltering" ) CONFIG_STR+="${HEADERS[2]}\\nForceFiltering = True\\n";;
+        "enableForceTrueColor" ) CONFIG_STR+="${HEADERS[2]}\\nForceTrueColor = True\\n";;
+        "enableCopyFilter" ) CONFIG_STR+="${HEADERS[2]}\\nDisableCopyFilter = True\\n";;
+        "MaxAnisotropy=0" ) CONFIG_STR+="${HEADERS[2]}\\nMaxAnisotropy = 0\\n";;
+        "MaxAnisotropy=1" ) CONFIG_STR+="${HEADERS[2]}\\nMaxAnisotropy = 1\\n";;
+        "MaxAnisotropy=2" ) CONFIG_STR+="${HEADERS[2]}\\nMaxAnisotropy = 2\\n";;
+        "MaxAnisotropy=3" ) CONFIG_STR+="${HEADERS[2]}\\nMaxAnisotropy = 3\\n";;
+        "MaxAnisotropy=4" ) CONFIG_STR+="${HEADERS[2]}\\nMaxAnisotropy = 4\\n";;
+        # Graphics.Hacks
+        "disableEFBAccessDeferInvalidation" ) CONFIG_STR+="${HEADERS[3]}\\nEFBAccessDeferInvalidation = False\\n";;
+        "enableEFBAccessDeferInvalidation" ) CONFIG_STR+="${HEADERS[3]}\\nEFBAccessDeferInvalidation = True\\n";;
+        "disableEFBEmulateFormatChanges" ) CONFIG_STR+="${HEADERS[3]}\\nEFBEmulateFormatChanges = False\\n";;
+        "enableEFBEmulateFormatChanges" ) CONFIG_STR+="${HEADERS[3]}\\nEFBEmulateFormatChanges = True\\n";;
+        "disableEFBToTexture" ) CONFIG_STR+="${HEADERS[3]}\\nEFBToTextureEnable = False\\n";;
+        "disableXFBToTexture" ) CONFIG_STR+="${HEADERS[3]}\\nXFBToTextureEnable = False\\n";;
+        "disableImmediateXFB" ) CONFIG_STR+="${HEADERS[3]}\\nImmediateXFBenable = False\\n";;
+        "disableVertexRounding" ) CONFIG_STR+="${HEADERS[3]}\\nVertexRounding = False\\n";;
+        "enableEFBToTexture" ) CONFIG_STR+="${HEADERS[3]}\\nEFBToTextureEnable = True\\n";;
+        "enableXFBToTexture" ) CONFIG_STR+="${HEADERS[3]}\\nXFBToTextureEnable = True\\n";;
+        "enableImmediateXFB" ) CONFIG_STR+="${HEADERS[3]}\\nImmediateXFBenable = True\\n";;
+        "disableDeferEFBCopies" ) CONFIG_STR+="${HEADERS[3]}\\nDeferEFBCopies = False\\n";;
+        "disableEFBScaledCopy" ) CONFIG_STR+="${HEADERS[3]}\\nEFBScaledCopy = False\\n";;
+        "enableVertexRounding" ) CONFIG_STR+="${HEADERS[3]}\\nVertexRounding = True\\n";;
+        "enableDeferEFBCopies" ) CONFIG_STR+="${HEADERS[3]}\\nDeferEFBCopies = True\\n";;
+        "enableEFBScaledCopy" ) CONFIG_STR+="${HEADERS[3]}\\nEFBScaledCopy = True\\n";;
+        "disableEFBAccess" ) CONFIG_STR+="${HEADERS[3]}\\nEFBAccessEnable = False\\n";;
+        "enableEFBAccess" ) CONFIG_STR+="${HEADERS[3]}\\nEFBAccessEnable = True\\n";;
+        "disableBBox" ) CONFIG_STR+="${HEADERS[3]}\\nBBoxEnable = False\\n";;
+        "enableBBox" ) CONFIG_STR+="${HEADERS[3]}\\nBBoxEnable = True\\n";;
+        # Graphics.Hardware
+        "disableVsync" ) CONFIG_STR+="${HEADERS[4]}\\nVSync = False\\n";;
+        "enableVsync" ) CONFIG_STR+="${HEADERS[4]}\\nVSync = True\\n";;
+        # Graphics.Stereoscopy
+        "disableStereoEFBMonoDepth" ) CONFIG_STR+="${HEADERS[5]}\\nStereoEFBMonoDepth = False\\n";;
+        "enableStereoEFBMonoDepth" ) CONFIG_STR+="${HEADERS[5]}\\nStereoEFBMonoDepth = True\\n";;
+        "disableStereoSwapEyes" ) CONFIG_STR+="${HEADERS[5]}\\nStereoSwapEyes = False\\n";;
+        "enableStereoSwapEyes" ) CONFIG_STR+="${HEADERS[5]}\\nStereoSwapEyes = True\\n";;
+        # DSP
+        "enableJIT" ) CONFIG_STR+="${HEADERS[6]}\\nEnableJIT = True\\nDSPHLE = False\\n";;
+        "disableJIT" ) CONFIG_STR+="${HEADERS[6]}\\nEnableJIT = False\\n";;
+        "AudioBackend=None" ) CONFIG_STR+="${HEADERS[6]}\\nBackend = No audio output\\n";;
+        "AudioBackend=ALSA" ) CONFIG_STR+="${HEADERS[6]}\\nBackend = ALSA\\n";;
+        "AudioBackend=Cubeb" ) CONFIG_STR+="${HEADERS[6]}\\nBackend = Cubeb\\n";;
+        "AudioBackend=Pulse" ) CONFIG_STR+="${HEADERS[6]}\\nBackend = Pulse\\n";;
+        "AudioBackend=OpenAL" ) CONFIG_STR+="${HEADERS[6]}\\nBackend = OpenAL\\n";;
+        "AudioBackend=OpenSLES" ) CONFIG_STR+="${HEADERS[6]}\\nBackend = OpenSLES\\n";;
+        "AudioBackend=WASAPI" ) CONFIG_STR+="${HEADERS[6]}\\nBackend = WASAPI\\n";;
+        "AudioBackend=XAudio2" ) CONFIG_STR+="${HEADERS[6]}\\nBackend = XAudio2\\n";;
+    esac
+done
+
+$ECHO_E "$(cat $GLSE64)\n$CONFIG_STR" > $GLSE64
+exit 0
