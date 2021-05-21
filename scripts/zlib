@@ -1,0 +1,115 @@
+#!/bin/bash
+# zlib -- compress and decompress zlib archives with JimB's zlib tool
+
+PYTHON="$(which python3)"
+if [[ -z PYTHON ]]; then
+    echo "$0: ERROR: python3 not found." >&2; exit 1
+fi
+
+BASEDIR="baseiso"
+ZLIB_PATH="$BASEDIR/gladius_bec/zlib"
+COMPRESS=0
+DECOMPRESS=0
+COMPRESSION_LEVEL=1
+INDATA=""
+OUTDATA=""
+VERBOSE=""
+
+function print_man
+{
+    cat << EOF
+NAME
+    zlib
+DESCRIPTION
+    compress and decompress zlib archives. ONLY FOR USE WITH PS2 COPY OF GLADIUS.
+
+    -c, --compress
+        compresses a specified file to a zlib archive. Overrides corresponding archive in $ZLIB_PATH
+        The path of file starts from within $BASEDIR/gladius_bec/.
+    -d, --dir
+        point to specified output directory. Default is 'baseiso'.
+    -h, --help
+        shows this information and exits.
+    -l, --compression-level
+    -v, --verbose
+        shows more detailed information of what the script is doing. Use this
+        for debugging.
+    -x, --decompress
+        decompresses a specified zlib archive to the original file. Overrides corresponding file in $BASEDIR/gladius_bec/
+        The path of file starts from within $BASEDIR/gladius_bec/.
+EOF
+}
+
+function print_usage
+{
+    echo "Usage: $(basename $0) (-c|--compress, -x|--decompress) [-l| --compression-level] [-h|--help] [-v|--verbose]"
+    echo "    where flags surrounded in '[]' are optional."
+}
+
+function write_vervbose()
+{
+    if [[ "$VERBOSE" == "-v" ]]; then
+        echo $1
+    fi
+}
+
+function close_zlib() { $PYTHON tools/zlib-tool.py -l $3 -c $1 $2; }
+
+function open_zlib() { $PYTHON tools/zlib-tool.py -x $1 $2; }
+
+for arg in "$@"; do
+    shift
+    case "$arg" in
+         "--compress") set -- "$@" "-c"     ;;
+       "--decompress") set -- "$@" "-x"     ;;
+"--compression-level") set -- "$@" "-l"     ;;
+             "--help") set -- "$@" "-h"     ;;
+          "--verbose") set -- "$@" "-v"     ;;
+              "--dir") set -- "$@" "-d"     ;;
+                   * ) set -- "$@" "$arg"
+    esac
+done
+
+OPTIND=1
+while getopts ":c:d:l:x:hv" opt;
+do
+    case "$opt" in
+        "c")if [[ DECOMPRESS -eq 1 ]]; then
+                echo "$0: ERROR: -c and -x are mutually exclusive." >&2
+                exit 1
+            fi
+            COMPRESS=1; INDATA="$OPTARG"; OUTDATA="$ZLIB_PATH/$OPTARG.zlib" ;;
+        "d") BASEDIR="$OPTARG" ;;
+        "x")if [[ COMPRESS -eq 1 ]]; then
+                echo "$0: ERROR: -c and -x are mutually exclusive." >&2
+                exit 1
+            fi
+            DECOMPRESS=1 ;;
+        "l") COMPRESSION_LEVEL="$OPTARG" ;;
+        "h") print_man; exit 0 ;;
+        "v") VERBOSE="-v" ;;
+        \? ) echo "$0: ERROR: Invalid option: -$OPTARG." >&2; print_usage >&2; exit 1 ;;
+         : ) echo "$0: ERROR: Invalid option: -$OPTARG requires an argument." >&2; exit 1 ;;
+    esac
+done
+if [[ $OPTIND -eq 1 ]]; then print_usage >&2; exit 1; fi
+shift $(( $OPTIND - 1 ))
+
+if [[ -d $BASEDIR ]]; then
+    if [[ -d $ZLIB_PATH ]]; then
+        if [[ COMPRESS -eq 1 ]]; then
+            close_zlib $BASEDIR/gladius_bec/$INDATA $OUTDATA $COMPRESSION_LEVEL
+        fi
+        if [[ DECOMPRESS -eq 1 ]]; then
+            open_zlib $ZLIB_PATH/$INDATA $BASEDIR/gladius_bec/$OUTDATA
+        fi
+    else
+        # NOT PS2 VERSION?
+        echo "$0: ERROR: Could not find $ZLIB_PATH." >&2; exit 1
+    fi
+else
+    # ISO NOT EXTRACTED
+    echo "$0: ERROR: The output directory $BASEDIR does not exist." >&2; exit 1
+fi
+
+exit 0
