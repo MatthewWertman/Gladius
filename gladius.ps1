@@ -93,7 +93,7 @@ Function Build-Bec
         [string]$becPath
     )
     Write-Verbose -Message ("Repacking {0}..." -f $becFile)
-    EORR Close-Bec $BaseDir\$becPath\ .\build\$becFile $BaseDir\$becPath\$becPath_FileList.txt
+    EORR Close-Bec $BaseDir\$becPath\ .\build\$becFile ("{0}\{1}\{1}_FileList.txt" -f $BaseDir, $becPath)
     Write-Verbose -Message ("Moving build\{0} to {1} directory..." -f $becFile, $BaseDir)
     EORR Copy-Item -Path .\build\$becFile -Destination $BaseDir\
 }
@@ -179,6 +179,7 @@ if ($clean)
    Write-Verbose -Message "Removing build contents and modified isos..."
    EORR Remove-Item .\build\* -Recurse -ErrorAction SilentlyContinue
    EORR Get-Item *.iso -Exclude $Rom | Remove-Item
+   Exit 0
 }
 
 if ($cleanall)
@@ -206,6 +207,7 @@ if ($cleanall)
         Get-Item *.iso -Exclude $Rom | Remove-Item
 
     }
+    Exit 0
 }
 
 # Require either "-gc" or "-ps"
