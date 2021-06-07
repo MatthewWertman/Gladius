@@ -204,6 +204,8 @@ if ($cleanall)
         Write-Verbose -Message "Removing build directory..."
         Remove-Item .\build -Recurse -ErrorAction SilentlyContinue
         Write-Verbose -Message "Removing any modified isos (not $BASEISO)..."
+        # Remove relative path
+        $Rom = $Rom.TrimStart(".\")
         Get-Item *.iso -Exclude $Rom | Remove-Item
 
     }
