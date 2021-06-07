@@ -12,8 +12,8 @@ The gladius.ps1 script unpacks and packs both GameCube and PlayStation 2 Gladius
 
 [CmdletBinding(DefaultParametersetName="gladius")]
 Param (
-    [parameter(ParameterSetName="GameCube")][switch]$gc,
-    [parameter(ParameterSetName="PlayStation")][switch]$ps,
+    [parameter(ParameterSetName="gc")][switch]$gc,
+    [parameter(ParameterSetName="ps")][switch]$ps,
     [string]$BaseDir="baseiso",
     [string]$Rom="baseiso.iso",
     [string]$IsoName="gladius",
@@ -29,6 +29,9 @@ Param (
     [switch]$help
 )
 
+# Actions
+$ACTIONS = @($init, $initiso, $initaudio, $buildaudio, $builddata, $buildiso, $clean, $cleanall)
+
 # Python
 $PyVersion = (Get-Command python.exe).FileVersionInfo.FileVersion
 $Python = (Get-Command python.exe).Path
@@ -43,12 +46,13 @@ if ( ! ( $PyVersion -ge 3 ) )
 Function Get-7zip
 {
     $PathArr = "C:\Program Files\7-Zip\", "C:\Program Files (x86)\7-Zip\"
-    $P7ZipPath = @()
+    $P7ZipPath = ""
     foreach ($path in $PathArr)
     {
         if ( Test-Path -Path $path )
         {
-            $P7ZipPath = $P7ZipPath += $path
+            $P7ZipPath += $path
+            Break
         }
     }
     return $P7ZipPath
@@ -71,7 +75,7 @@ Function Open-Iso
         }
         else
         {
-            Write-Error -Message "Error: 7-Zip doesn't seem to be installed and is required."
+            Write-Error -Message "7-Zip doesn't seem to be installed and is required."
             Exit 1
         }
     }
@@ -161,8 +165,9 @@ DESCRIPTION
 
 Function Print-Usage
 {
-    Write-Output "Usage: gladius.ps1 (-gc|-ps) [-IsoName] [-BaseDir] [-Rom] (-init | -initiso | -initaudio | -clean | -cleanall | -buildaudio | -builddata | -buildiso) [-help] [-echo],"
+    Write-Output "Usage: gladius.ps1 -gc|-ps [-IsoName] [-BaseDir] [-Rom] (-init | -initiso | -initaudio | -clean | -cleanall | -buildaudio | -builddata | -buildiso) [-help] [-echo],"
     Write-Output "    where flags surrounded in '[]' are optional."
+    Write-Output "    and all flags within '()' are actions. There must be at least one action."
 }
 
 if ( $PSBoundParameters.Count -eq 0 )
@@ -218,7 +223,7 @@ if ($cleanall)
 # Require either "-gc" or "-ps"
 if (!($gc.IsPresent -or $ps.IsPresent))
 {
-    Write-Error "Must denote game version."
+    Write-Error -Message "Must denote game version."
     Print-Usage
     Exit 1
 }
@@ -238,7 +243,17 @@ if ($ps)
 }
 
 # Require at least one action
-if (!($init.IsPresent -or $initiso.IsPresent -or $initaudio.IsPresent -or $clean.IsPresent -or $cleanall.IsPresent -or $buildaudio.IsPresent -or $builddata.IsPresent -or $buildiso.IsPresent))
+$LEAST_ONE_ACTION=$false
+foreach ( $action in $ACTIONS )
+{
+    if ($action)
+    {
+        $LEAST_ONE_ACTION=$true
+        Break
+    }
+}
+
+if ( ! $LEAST_ONE_ACTION)
 {
     Write-Error "Must supply at least one action."
     Print-Usage

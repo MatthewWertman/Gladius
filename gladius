@@ -150,6 +150,7 @@ function print_usage
 {
     echo "Usage: $(basename $0) [--gc|--ps] [--name|-n] [--rom|-r] [--dir|-d] (--build-audio|-a, --build-data|-b, --build-iso|-g, --clean|-c, --clean-all, --init|-i, --init-audio|-s, --init-iso|-x) [--echo|-e] [--help|-h] [--verbose|-v]," >&2
     echo "    where flags surrounded in '[]' are optional." >&2
+    echo "    and all flags surrounded in '()' are actions. There must be at least one action." >&2
 }
 
 #@params
@@ -214,7 +215,18 @@ done
 if [[ $OPTIND -eq 1 ]]; then print_usage >&2; exit 1; fi
 shift $(($OPTIND - 1))
 
-if [[ ! ( INIT -eq 1 || INITISO -eq 1 || AUDIO -eq 1 || BUILDAUDIO -eq 1 || BUILDDATA -eq 1 || BUILDISO -eq 1 || CLEAN -eq 1 || CLEANALL -eq 1 ) ]]; then
+# Actions
+ACTIONS=($INIT $AUDIO $INITISO $BUILDAUDIO $BUILDDATA $BUILDISO $CLEAN $CLEANALL)
+LEAST_ONE_ACTION=""
+for i in "${ACTIONS[@]}"
+do
+    if [[ $i -eq 1 ]]; then
+        LEAST_ONE_ACTION="true"
+        break
+    fi
+done
+
+if [[ ! $LEAST_ONE_ACTION ]]; then
     echo "$0: ERROR (Must supply at least one action.)" >&2
     print_usage
     exit 1
