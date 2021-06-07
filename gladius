@@ -13,6 +13,7 @@ fi
 #Flags
 AUDIO=0
 INIT=0
+INITISO=0
 BUILDAUDIO=0
 BUILDDATA=0
 BUILDISO=0
@@ -140,12 +141,14 @@ DESCRIPTION
     -v, --verbose
             shows more detailed information of what the script is doing. Use this
             for debugging.
+    -x, --init-iso
+            Unpacks pointed ROM to output direcory. Does NOT unpack any BEC archives.
 EOF
 }
 
 function print_usage
 {
-    echo "Usage: $(basename $0) [--gc|--ps] [--name|-n] [--rom|-r] [--dir|-d] (--build-audio|-a, --build-data|-b, --build-iso|-g, --clean|-c, --clean-all, --init|-i, --init-audio|-s) [--echo|-e] [--help|-h] [--verbose|-v]," >&2
+    echo "Usage: $(basename $0) [--gc|--ps] [--name|-n] [--rom|-r] [--dir|-d] (--build-audio|-a, --build-data|-b, --build-iso|-g, --clean|-c, --clean-all, --init|-i, --init-audio|-s, --init-iso|-x) [--echo|-e] [--help|-h] [--verbose|-v]," >&2
     echo "    where flags surrounded in '[]' are optional." >&2
 }
 
@@ -176,6 +179,7 @@ for arg in "$@"; do
             "--help") set -- "$@" "-h"      ;;
             "--init") set -- "$@" "-i"      ;;
       "--init-audio") set -- "$@" "-s"      ;;
+        "--init-iso") set -- "$@" "-x"      ;;
             "--name") set -- "$@" "-n"      ;;
               "--ps") if [[ GC -eq 1 ]]; then
                           echo "$0: ERROR (--gc and --ps are mutually exclusive.)" >&2
@@ -189,7 +193,7 @@ for arg in "$@"; do
 done
 
 OPTIND=1
-while getopts ":d:n:r:abceghisv" opt; do
+while getopts ":d:n:r:abceghisvx" opt; do
     case "$opt" in
         "a") BUILDAUDIO=1 ;;
         "b") BUILDDATA=1 ;;
@@ -203,13 +207,14 @@ while getopts ":d:n:r:abceghisv" opt; do
         "r") BASEISO="$OPTARG" ;;
         "s") AUDIO=1 ;;
         "v") VERBOSE="-v" ;;
+        "x") INITISO=1 ;;
         \? ) echo "$0: ERROR (Invalid parameter flag.)" >&2; print_usage >&2; exit 1 ;;
     esac
 done
 if [[ $OPTIND -eq 1 ]]; then print_usage >&2; exit 1; fi
 shift $(($OPTIND - 1))
 
-if [[ ! ( INIT -eq 1 || AUDIO -eq 1 || BUILDAUDIO -eq 1 || BUILDDATA -eq 1 || BUILDISO -eq 1 || CLEAN -eq 1 || CLEANALL -eq 1 ) ]]; then
+if [[ ! ( INIT -eq 1 || INITISO -eq 1 || AUDIO -eq 1 || BUILDAUDIO -eq 1 || BUILDDATA -eq 1 || BUILDISO -eq 1 || CLEAN -eq 1 || CLEANALL -eq 1 ) ]]; then
     echo "$0: ERROR (Must supply at least one action.)" >&2
     print_usage
     exit 1
@@ -259,6 +264,11 @@ if [[ INIT -eq 1 ]]; then
     $EORR $MKDIR_P $BASEDIR
     $EORR unpack_iso ./$BASEISO ./$BASEDIR/ BaseISO_FileList.txt
     $EORR unpack_bec ./$BASEDIR/$DATABEC ./$BASEDIR/gladius_bec/ gladius_bec_FileList.txt
+fi
+
+if [[ INITISO -eq 1 ]]; then
+    write_verbose "Extracting $BASEISO to '$BASEDIR' directory..."
+    $EORR unpack_iso ./$BASEISO ./$BASEDIR/ BaseISO_FileList.txt
 fi
 
 if [[ AUDIO -eq 1 ]]; then

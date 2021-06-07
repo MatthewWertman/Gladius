@@ -18,6 +18,7 @@ Param (
     [string]$Rom="baseiso.iso",
     [string]$IsoName="gladius",
     [switch]$init,
+    [switch]$initiso,
     [switch]$initaudio,
     [switch]$echo,
     [switch]$buildaudio,
@@ -143,6 +144,8 @@ DESCRIPTION
             Manaully denotes GameCube version.
     -init
             Unpacks iso and gladius.bec to BaseDir directory.
+    -initiso
+            Unpacks the pointed ROM to BaseDir directory. Does NOT unpack any BEC archives.
     -initaudio
             Unpacks the audio.bec file to BaseDir directory.
     -IsoName
@@ -158,7 +161,7 @@ DESCRIPTION
 
 Function Print-Usage
 {
-    Write-Output "Usage: gladius.ps1 (-gc|-ps) [-IsoName] [-BaseDir] [-Rom] (-init | -initaudio | -clean | -cleanall | -buildaudio | -builddata | -buildiso) [-help] [-echo],"
+    Write-Output "Usage: gladius.ps1 (-gc|-ps) [-IsoName] [-BaseDir] [-Rom] (-init | -initiso | -initaudio | -clean | -cleanall | -buildaudio | -builddata | -buildiso) [-help] [-echo],"
     Write-Output "    where flags surrounded in '[]' are optional."
 }
 
@@ -233,7 +236,7 @@ if ($ps)
 }
 
 # Require at least one action
-if (!($init.IsPresent -or $initaudio.IsPresent -or $clean.IsPresent -or $cleanall.IsPresent -or $buildaudio.IsPresent -or $builddata.IsPresent -or $buildiso.IsPresent))
+if (!($init.IsPresent -or $initiso.IsPresent -or $initaudio.IsPresent -or $clean.IsPresent -or $cleanall.IsPresent -or $buildaudio.IsPresent -or $builddata.IsPresent -or $buildiso.IsPresent))
 {
     Write-Error "Must supply at least one action."
     Print-Usage
@@ -247,6 +250,12 @@ if ($init)
     EORR Open-Iso $Rom $BaseDir\ BaseISO_FileList.txt
     Write-Verbose -Message ("Extracting {0} to '{1}\gladius_bec\'..." -f $DATABEC, $BaseDir)
     EORR Open-Bec $BaseDir\$DATABEC $BaseDir\gladius_bec\ gladius_bec_FileList.txt
+}
+
+if ($initiso)
+{
+    Write-Verbose -Message ("Extracting {0} to '{1}' directory..." -f $Rom, $BaseDir)
+    EORR Open-Iso $Rom $BaseDir\ BaseISO_FileList.txt
 }
 
 if ($initaudio)
