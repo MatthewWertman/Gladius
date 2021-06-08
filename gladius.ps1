@@ -277,7 +277,7 @@ if ($initiso)
 
 if ($initaudio)
 {
-    if (!($init) -and !(Test-Path -Path $BaseDir))
+    if (!$init -and !$initiso -and !(Test-Path -Path $BaseDir))
     {
         EORR New-Item -ItemType Directory -Force -Path .\$BaseDir | Out-Null
         Write-Verbose -Message ("Extracting {0} to '{1}' directory..." -f $Rom, $BaseDir)
