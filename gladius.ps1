@@ -32,114 +32,7 @@ Param (
 # Actions
 $ACTIONS = @($init, $initiso, $initaudio, $buildaudio, $builddata, $buildiso, $clean, $cleanall)
 
-# Python
-Function Get-Python
-{
-    $PyLocations = "C:\Python*\", "C:\Python\Python*\", "C:\Python3\Python*\", "C:\Users\$Env:USERNAME\AppData\Local\Programs\Python\Python*\"
-    $PythonPath = ""
-    foreach ($path in $PyLocations)
-    {
-        if ( Test-Path $path)
-        {
-            $PythonPath = Resolve-Path $path
-            Break
-        }
-    }
-    return $PythonPath
-}
-
-$PyVersion = (Get-Command python.exe).FileVersionInfo.FileVersion
-$Python = (Get-Command python.exe).Path
-
-if (!$Python)
-{
-    $Python = (Get-ChildItem -Path (& Get-Python) -File python.exe).FullName
-    $PyVersion = (Get-Command $Python).FileVersionInfo.FileVersion
-}
-
-# Check Python Version
-if ( !$PyVersion -or ! ( $PyVersion -ge 3 ) )
-{
-   Write-Output "Error: Need to require Python 3, Make sure you are using Python 3 or greater."
-   Exit 1
-}
-
-Function Get-7zip
-{
-    $PathArr = "C:\Program Files\7-Zip\", "C:\Program Files (x86)\7-Zip\"
-    $P7ZipPath = ""
-    foreach ($path in $PathArr)
-    {
-        if ( Test-Path -Path $path )
-        {
-            $P7ZipPath += $path
-            Break
-        }
-    }
-    return $P7ZipPath
-}
-# 7Zip
-$P7Zip = (Get-ChildItem -Path (& Get-7zip) -File 7z.exe).FullName
-
-Function Open-Iso
-{
-    param(
-        [string]$iso,
-        [string]$outDir,
-        [string]$fileList
-    )
-    if ($ps)
-    {
-        if ($P7Zip)
-        {
-            & $P7Zip x -o"$outDir" $iso -aos
-        }
-        else
-        {
-            Write-Error -Message "7-Zip doesn't seem to be installed and is required."
-            Exit 1
-        }
-    }
-    elseif ($gc)
-    {
-        & $Python .\tools\ngciso-tool.py -unpack $iso $outDir $fileList
-    }
-}
-
-Function Open-Bec { & $Python .\tools\bec-tool.py -unpack $args[0] $args[1] $args[2] }
-
-Function Close-Iso { & $Python .\tools\ngciso-tool.py -pack $args[0] $args[1] $args[2] $args[3] }
-
-Function Close-Bec { & $Python .\tools\bec-tool.py -pack $args[0] $args[1] $args[2] }
-
-Function Build-Bec
-{
-    param(
-        [string]$becFile,
-        [string]$becPath
-    )
-    Write-Verbose -Message ("Repacking {0}..." -f $becFile)
-    EORR Close-Bec $BaseDir\$becPath\ .\build\$becFile ("{0}\{1}\{1}_FileList.txt" -f $BaseDir, $becPath)
-    Write-Verbose -Message ("Moving build\{0} to {1} directory..." -f $becFile, $BaseDir)
-    EORR Copy-Item -Path .\build\$becFile -Destination $BaseDir\
-}
-
-Function EORR
-{
-    if ($echo)
-    {
-        Write-Host $args
-    }
-    else
-    {
-        ForEach ($arg in $args)
-        {
-            $cmd+="$arg "
-        }
-        Invoke-Expression $cmd
-    }
-}
-
+# Util
 Function Print-Man
 {
     Write-Output(
@@ -190,6 +83,105 @@ Function Print-Usage
     Write-Output "    where flags surrounded in '[]' are optional."
     Write-Output "    and all flags within '()' are actions. There must be at least one action."
 }
+
+Function EORR
+{
+    if ($echo)
+    {
+        Write-Host $args
+    }
+    else
+    {
+        ForEach ($arg in $args)
+        {
+            $cmd+="$arg "
+        }
+        Invoke-Expression $cmd
+    }
+}
+
+Function Get-Program
+{
+    param(
+        [string[]]$pathArr
+    )
+    $ProgramPath = ""
+    foreach ($path in $pathArr)
+    {
+        if ( Test-Path $path )
+        {
+            $ProgramPath = Resolve-Path $path
+            Break
+        }
+    }
+    Return $ProgramPath
+}
+
+Function Open-Iso
+{
+    param(
+        [string]$iso,
+        [string]$outDir,
+        [string]$fileList
+    )
+    if ($ps)
+    {
+        if ($P7Zip)
+        {
+            & $P7Zip x -o"$outDir" $iso -aos
+        }
+        else
+        {
+            Write-Error -Message "7-Zip doesn't seem to be installed and is required."
+            Exit 1
+        }
+    }
+    elseif ($gc)
+    {
+        & $Python .\tools\ngciso-tool.py -unpack $iso $outDir $fileList
+    }
+}
+
+Function Open-Bec { & $Python .\tools\bec-tool.py -unpack $args[0] $args[1] $args[2] }
+
+Function Close-Iso { & $Python .\tools\ngciso-tool.py -pack $args[0] $args[1] $args[2] $args[3] }
+
+Function Close-Bec { & $Python .\tools\bec-tool.py -pack $args[0] $args[1] $args[2] }
+
+Function Build-Bec
+{
+    param(
+        [string]$becFile,
+        [string]$becPath
+    )
+    Write-Verbose -Message ("Repacking {0}..." -f $becFile)
+    EORR Close-Bec $BaseDir\$becPath\ .\build\$becFile ("{0}\{1}\{1}_FileList.txt" -f $BaseDir, $becPath)
+    Write-Verbose -Message ("Moving build\{0} to {1} directory..." -f $becFile, $BaseDir)
+    EORR Copy-Item -Path .\build\$becFile -Destination $BaseDir\
+}
+
+# Python
+# Assume Python is in PATH
+$PyVersion = (Get-Command python.exe -ErrorAction SilentlyContinue).FileVersionInfo.FileVersion
+$Python = (Get-Command python.exe -ErrorAction SilentlyContinue).Path
+
+if (!$Python)
+{
+    $PyLocations = "C:\Python*\", "C:\Python\Python*\", "C:\Python3\Python*\", "C:\Users\$Env:USERNAME\AppData\Local\Programs\Python\Python*\"
+    $Python = (Get-ChildItem -Path (& Get-Program $PyLocations) -File python.exe).FullName
+    $PyVersion = (Get-Command $Python).FileVersionInfo.FileVersion
+}
+
+# Check Python Version
+if ( !$PyVersion -or ! ( $PyVersion -ge 3 ) )
+{
+   Write-Output "Error: Need to require Python 3, Make sure you are using Python 3 or greater."
+   Exit 1
+}
+
+# 7Zip
+$P7ZipLocations = "C:\Program Files\7-Zip\", "C:\Program Files (x86)\7-Zip\"
+$P7Zip = (Get-ChildItem -Path (& Get-Program $P7ZipLocations) -File 7z.exe).FullName
 
 if ( $PSBoundParameters.Count -eq 0 )
 {
