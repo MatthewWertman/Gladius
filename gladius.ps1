@@ -33,11 +33,32 @@ Param (
 $ACTIONS = @($init, $initiso, $initaudio, $buildaudio, $builddata, $buildiso, $clean, $cleanall)
 
 # Python
+Function Get-Python
+{
+    $PyLocations = "C:\Python*\", "C:\Python\Python*\", "C:\Python3\Python*\", "C:\Users\$Env:USERNAME\AppData\Local\Programs\Python\Python*\"
+    $PythonPath = ""
+    foreach ($path in $PyLocations)
+    {
+        if ( Test-Path $path)
+        {
+            $PythonPath = Resolve-Path $path
+            Break
+        }
+    }
+    return $PythonPath
+}
+
 $PyVersion = (Get-Command python.exe).FileVersionInfo.FileVersion
 $Python = (Get-Command python.exe).Path
 
+if (!$Python)
+{
+    $Python = (Get-ChildItem -Path (& Get-Python) -File python.exe).FullName
+    $PyVersion = (Get-Command $Python).FileVersionInfo.FileVersion
+}
+
 # Check Python Version
-if ( ! ( $PyVersion -ge 3 ) )
+if ( !$PyVersion -or ! ( $PyVersion -ge 3 ) )
 {
    Write-Output "Error: Need to require Python 3, Make sure you are using Python 3 or greater."
    Exit 1
