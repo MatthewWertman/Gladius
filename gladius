@@ -66,7 +66,16 @@ function create_iso() { $PYTHON tools/ngciso-tool.py -pack $1 $2 $3 $4; }
     # $1 - Directory for input
     # $2 - Directory for output
     # $3 - File list containing all necessary files to pack
-function create_bec() { $PYTHON tools/bec-tool.py -pack $1 $2 $3; }
+function create_bec()
+{
+    if [[ GC -eq 1 ]]; then
+        write_verbose "Packing $1 with --gc flag..."
+        $PYTHON tools/bec-tool.py -pack $1 $2 $3 --gc
+    else
+        write_verbose "Packing $1..."
+        $PYTHON tools/bec-tool.py -pack $1 $2 $3
+    fi
+}
 
 #@params
     # $1 - BEC file

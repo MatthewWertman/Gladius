@@ -146,7 +146,16 @@ Function Open-Bec { & $Python .\tools\bec-tool.py -unpack $args[0] $args[1] $arg
 
 Function Close-Iso { & $Python .\tools\ngciso-tool.py -pack $args[0] $args[1] $args[2] $args[3] }
 
-Function Close-Bec { & $Python .\tools\bec-tool.py -pack $args[0] $args[1] $args[2] }
+Function Close-Bec
+{
+    if ($gc) {
+        Write-Verbose -Message ("Packing {0} with --gc flag..." -f $args[0])
+        & $Python .\tools\bec-tool.py -pack $args[0] $args[1] $args[2] --gc
+    } else {
+        Write-Verbose -Message ("Packing {0}..." -f $args[0])
+        & $Python .\tools\bec-tool.py -pack $args[0] $args[1] $args[2]
+    }
+}
 
 Function Build-Bec
 {
