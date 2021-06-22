@@ -66,9 +66,9 @@ Gladius tree view
 
 The main files to point out are the various files named "gladius". This includes "gladius", "gladius.bat", and "gladius.ps1". These are all functionally the same main wrapper script just written for different environments.
 
-The file named "gladius" is the wrapper script written for Linux's BASH shell interpreter and "gladius.ps1" is written for Window's PowerShell. "gladius.bat" is a small Command Prompt wrapper for the powershell script. For more detialed coverage of the differences and use cases for each of these files, see [scripts-overview](./scripts-overview.md).
+The file named "gladius" is the wrapper script written for Linux's BASH shell interpreter and "gladius.ps1" is written for Window's PowerShell. "gladius.bat" is a small Command Prompt wrapper for the powershell script. For more detialed coverage of the differences and use cases for each of these files, see [the Scripts Overview page](./scripts-overview.md).
 
-*NOTE: For more information on the other directories and files, see [project-structure](./project-structure.md)*
+*NOTE: For more information on the other directories and files, see [Project Structure in docs/](./project-structure.md)*
 
 ##### Extracting the ISO
 
@@ -78,7 +78,7 @@ By default, the gladius wrapper script looks for a .iso file named "baseiso.iso"
 
 ###### Using gladius.ps1 (Windows)
 
-First off, due to PowerShell restricting ANY scripts from being ran by default, the easiest way to use the gladius script on Windows is actually using the "gladius.bat" file. See [using-gladius-ps1](./using-gladius-ps1.md) for more information about others way of resolving this issue and running the gladius.ps1 on Windows.
+First off, due to PowerShell restricting ANY scripts from being ran by default, the easiest way to use the gladius script on Windows is actually using the "gladius.bat" file. See [Using gladius.ps1](./using-gladius-ps1.md) for more information about others way of resolving this issue and running the gladius.ps1 on Windows.
 
 1. Open a PowerShell or CMD terminal.
 
@@ -111,4 +111,4 @@ You have now successfully extracted Gladius and it's data files! Feel free to st
 
 If you are a new modder, I really recommend joining the [Gladius discord server](https://discord.gg/dHPSWqtXU8). Everyone there is very knowledgeable and approachable for help.
 
-This is not even close to the extent of what this wrapper can do. Be sure to check out [gladius](./gladius.md) for detailed coverage of the many functions of this script.
+This is not even close to the extent of what this wrapper can do. Be sure to check out [Gladius](./gladius.md) in the docs for detailed coverage of the many functions of this script.
