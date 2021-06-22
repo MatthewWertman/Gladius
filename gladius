@@ -221,7 +221,6 @@ while getopts ":d:n:r:abceghisvx" opt; do
         \? ) echo "$0: ERROR (Invalid parameter flag.)" >&2; print_usage >&2; exit 1 ;;
     esac
 done
-if [[ $OPTIND -eq 1 ]]; then print_usage >&2; exit 1; fi
 shift $(($OPTIND - 1))
 
 # Actions
