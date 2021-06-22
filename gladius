@@ -3,7 +3,7 @@
 
 MKDIR_P="$(which mkdir) -p"
 RM_F="$(which rm) -f"
-P7ZIP="$(which 7z)"
+P7ZIP="$(which 7z 2> /dev/null)"
 PYTHON="$(which python3)"
 if [[ -z PYTHON ]]; then
     echo "$0: ERROR (python3 doesn't seem to be installed and is required.)" >&2
