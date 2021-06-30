@@ -315,10 +315,10 @@ if [[ BUILDISO -eq 1 ]]; then
     write_verbose "Packing $ISONAME iso..."
     $EORR $MKDIR_P build/
     if [[ BUILDDATA -eq 0 ]]; then
-        build_bec $AUDIOBEC audio_bec
+        build_bec $DATABEC gladius_bec
     fi
     if [[ BUILDAUDIO -eq 0 && -d ./$BASEDIR/audio_bec ]]; then
-        build_bec $DATABEC gladius_bec
+        build_bec $AUDIOBEC audio_bec
     fi
     if [[ PS -eq 0 ]]; then
         $EORR create_iso ./$BASEDIR ./$BASEDIR/fst.bin ./$BASEDIR/BaseISO_FileList.txt "$ISONAME.iso"
